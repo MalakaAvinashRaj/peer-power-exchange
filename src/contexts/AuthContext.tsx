@@ -92,7 +92,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
           email: data.email,
           name: data.name,
           avatar_url: data.avatar_url,
-          role: data.role || 'student',
+          role: (data.role as 'student' | 'teacher' | 'admin') || 'student',
           isTeacher: data.is_teacher || false
         };
         
