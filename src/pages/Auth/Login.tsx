@@ -8,14 +8,22 @@ import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle }
 import { Separator } from '@/components/ui/separator';
 import { Github, Mail } from 'lucide-react';
 import { toast } from 'sonner';
+import { useAuth } from '@/contexts/AuthContext';
 
 const Login = () => {
   const navigate = useNavigate();
-  const [isLoading, setIsLoading] = React.useState(false);
+  const { login, isLoading, isAuthenticated } = useAuth();
   const [formData, setFormData] = React.useState({
     email: '',
     password: '',
   });
+
+  // Redirect if already logged in
+  React.useEffect(() => {
+    if (isAuthenticated) {
+      navigate('/dashboard');
+    }
+  }, [isAuthenticated, navigate]);
 
   const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const { name, value } = e.target;
@@ -24,20 +32,7 @@ const Login = () => {
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    setIsLoading(true);
-    
-    try {
-      // Mock login process
-      await new Promise(resolve => setTimeout(resolve, 1000));
-      
-      toast.success('Logged in successfully!');
-      navigate('/dashboard');
-    } catch (error) {
-      console.error('Login error:', error);
-      toast.error('Login failed. Please check your credentials.');
-    } finally {
-      setIsLoading(false);
-    }
+    await login(formData.email, formData.password);
   };
 
   return (
@@ -55,6 +50,12 @@ const Login = () => {
           <CardTitle className="text-2xl font-bold">Welcome back</CardTitle>
           <CardDescription>
             Log in to your account to continue
+          </CardDescription>
+          <CardDescription className="text-sm px-6 py-2 bg-amber-50 text-amber-700 rounded-md">
+            <strong>Demo accounts:</strong><br/>
+            admin@skillsync.com / password<br/>
+            teacher@skillsync.com / password<br/>
+            student@skillsync.com / password
           </CardDescription>
         </CardHeader>
         <CardContent className="space-y-4">

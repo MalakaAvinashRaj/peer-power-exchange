@@ -8,7 +8,8 @@ import {
   MessageSquare, 
   Calendar, 
   Bell, 
-  Menu
+  Menu,
+  LogOut
 } from 'lucide-react';
 import { 
   DropdownMenu,
@@ -17,10 +18,11 @@ import {
   DropdownMenuTrigger 
 } from '@/components/ui/dropdown-menu';
 import { useIsMobile } from '@/hooks/use-mobile';
+import { useAuth } from '@/contexts/AuthContext';
 
 const Navbar = () => {
   const isMobile = useIsMobile();
-  const [isAuthenticated, setIsAuthenticated] = React.useState(false); // Demo state - replace with actual auth
+  const { user, isAuthenticated, logout } = useAuth();
 
   return (
     <nav className="border-b sticky top-0 bg-white/80 backdrop-blur-md z-50">
@@ -56,7 +58,7 @@ const Navbar = () => {
             <Search size={18} />
           </Button>
           
-          {isAuthenticated ? (
+          {isAuthenticated && user ? (
             <>
               {!isMobile && (
                 <>
@@ -74,11 +76,19 @@ const Navbar = () => {
               
               <DropdownMenu>
                 <DropdownMenuTrigger asChild>
-                  <Button variant="outline" size="icon" className="rounded-full">
-                    <User size={18} />
+                  <Button variant="outline" size="icon" className="rounded-full overflow-hidden">
+                    {user.avatar ? (
+                      <img src={user.avatar} alt={user.name} className="w-full h-full object-cover" />
+                    ) : (
+                      <User size={18} />
+                    )}
                   </Button>
                 </DropdownMenuTrigger>
                 <DropdownMenuContent align="end">
+                  <div className="px-2 py-1.5 text-sm font-medium">
+                    {user.name}
+                    <div className="text-xs text-muted-foreground">{user.email}</div>
+                  </div>
                   <DropdownMenuItem asChild>
                     <Link to="/profile">Profile</Link>
                   </DropdownMenuItem>
@@ -88,7 +98,8 @@ const Navbar = () => {
                   <DropdownMenuItem asChild>
                     <Link to="/settings">Settings</Link>
                   </DropdownMenuItem>
-                  <DropdownMenuItem onClick={() => setIsAuthenticated(false)}>
+                  <DropdownMenuItem onClick={logout} className="text-red-500 cursor-pointer">
+                    <LogOut className="mr-2 h-4 w-4" />
                     Logout
                   </DropdownMenuItem>
                 </DropdownMenuContent>
@@ -136,6 +147,10 @@ const Navbar = () => {
                     </DropdownMenuItem>
                     <DropdownMenuItem asChild>
                       <Link to="/notifications">Notifications</Link>
+                    </DropdownMenuItem>
+                    <DropdownMenuItem onClick={logout} className="text-red-500 cursor-pointer">
+                      <LogOut className="mr-2 h-4 w-4" />
+                      Logout
                     </DropdownMenuItem>
                   </>
                 ) : (

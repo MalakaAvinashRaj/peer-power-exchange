@@ -9,6 +9,7 @@ import { Separator } from '@/components/ui/separator';
 import { Github, Mail } from 'lucide-react';
 import { toast } from 'sonner';
 import { Checkbox } from '@/components/ui/checkbox';
+import { useAuth } from '@/contexts/AuthContext';
 
 const Register = () => {
   const navigate = useNavigate();
@@ -16,7 +17,7 @@ const Register = () => {
   const searchParams = new URLSearchParams(location.search);
   const isTeacher = searchParams.get('teacher') === 'true';
   
-  const [isLoading, setIsLoading] = React.useState(false);
+  const { register, isLoading, isAuthenticated } = useAuth();
   const [formData, setFormData] = React.useState({
     fullName: '',
     email: '',
@@ -25,6 +26,13 @@ const Register = () => {
     isTeacher: isTeacher,
     agreeTerms: false
   });
+
+  // Redirect if already logged in
+  React.useEffect(() => {
+    if (isAuthenticated) {
+      navigate('/dashboard');
+    }
+  }, [isAuthenticated, navigate]);
 
   const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const { name, value } = e.target;
@@ -48,20 +56,7 @@ const Register = () => {
       return;
     }
     
-    setIsLoading(true);
-    
-    try {
-      // Mock registration process
-      await new Promise(resolve => setTimeout(resolve, 1000));
-      
-      toast.success('Account created successfully!');
-      navigate('/dashboard');
-    } catch (error) {
-      console.error('Registration error:', error);
-      toast.error('Registration failed. Please try again later.');
-    } finally {
-      setIsLoading(false);
-    }
+    await register(formData.email, formData.password, formData.fullName, formData.isTeacher);
   };
 
   return (
