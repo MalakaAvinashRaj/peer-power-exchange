@@ -77,8 +77,8 @@ const Navbar = () => {
               <DropdownMenu>
                 <DropdownMenuTrigger asChild>
                   <Button variant="outline" size="icon" className="rounded-full overflow-hidden">
-                    {user.avatar ? (
-                      <img src={user.avatar} alt={user.name} className="w-full h-full object-cover" />
+                    {user.avatar_url ? (
+                      <img src={user.avatar_url} alt={user.name} className="w-full h-full object-cover" />
                     ) : (
                       <User size={18} />
                     )}
