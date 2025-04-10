@@ -1,25 +1,24 @@
 
-import React from 'react';
+import React, { useState, useEffect } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from '@/components/ui/card';
-import { Separator } from '@/components/ui/separator';
-import { Github, Mail } from 'lucide-react';
 import { toast } from 'sonner';
 import { useAuth } from '@/contexts/AuthContext';
+import { Loader2 } from 'lucide-react';
 
 const Login = () => {
   const navigate = useNavigate();
   const { login, isLoading, isAuthenticated } = useAuth();
-  const [formData, setFormData] = React.useState({
+  const [formData, setFormData] = useState({
     email: '',
     password: '',
   });
 
   // Redirect if already logged in
-  React.useEffect(() => {
+  useEffect(() => {
     if (isAuthenticated) {
       navigate('/dashboard');
     }
@@ -51,36 +50,8 @@ const Login = () => {
           <CardDescription>
             Log in to your account to continue
           </CardDescription>
-          <CardDescription className="text-sm px-6 py-2 bg-amber-50 text-amber-700 rounded-md">
-            <strong>Demo accounts:</strong><br/>
-            admin@skillsync.com / password<br/>
-            teacher@skillsync.com / password<br/>
-            student@skillsync.com / password
-          </CardDescription>
         </CardHeader>
         <CardContent className="space-y-4">
-          <div className="grid grid-cols-2 gap-4">
-            <Button variant="outline" className="w-full" disabled={isLoading}>
-              <Github className="mr-2 h-4 w-4" />
-              GitHub
-            </Button>
-            <Button variant="outline" className="w-full" disabled={isLoading}>
-              <Mail className="mr-2 h-4 w-4" />
-              Email
-            </Button>
-          </div>
-          
-          <div className="relative">
-            <div className="absolute inset-0 flex items-center">
-              <Separator />
-            </div>
-            <div className="relative flex justify-center text-xs uppercase">
-              <span className="bg-background px-2 text-muted-foreground">
-                Or continue with
-              </span>
-            </div>
-          </div>
-          
           <form onSubmit={handleSubmit} className="space-y-4">
             <div className="space-y-2">
               <Label htmlFor="email">Email</Label>
@@ -114,7 +85,12 @@ const Login = () => {
               />
             </div>
             <Button type="submit" className="w-full bg-skillsync-blue hover:bg-skillsync-blue/90" disabled={isLoading}>
-              {isLoading ? 'Logging in...' : 'Log in'}
+              {isLoading ? (
+                <>
+                  <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                  Logging in...
+                </>
+              ) : 'Log in'}
             </Button>
           </form>
         </CardContent>

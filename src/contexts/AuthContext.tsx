@@ -44,6 +44,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     // Set up auth state listener FIRST
     const { data: { subscription } } = supabase.auth.onAuthStateChange(
       (event, currentSession) => {
+        console.log('Auth state changed:', event, currentSession);
         setSession(currentSession);
         
         if (currentSession?.user) {
@@ -59,6 +60,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
     // THEN check for existing session
     supabase.auth.getSession().then(({ data: { session: currentSession } }) => {
+      console.log('Got session:', currentSession);
       setSession(currentSession);
       
       if (currentSession?.user) {
@@ -76,6 +78,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   // Fetch additional user profile data from our profiles table
   const fetchUserProfile = async (authUser: User) => {
     try {
+      console.log('Fetching profile for user:', authUser.id);
       const { data, error } = await supabase
         .from('profiles')
         .select('*')
@@ -83,10 +86,12 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         .single();
 
       if (error) {
+        console.error('Error fetching profile:', error);
         throw error;
       }
 
       if (data) {
+        console.log('Profile data:', data);
         const userProfile: UserProfile = {
           id: data.id,
           email: data.email,
@@ -97,9 +102,34 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         };
         
         setUser(userProfile);
+        console.log('User profile set:', userProfile);
+      } else {
+        console.log('No profile found, creating one');
+        // If no profile exists, create one based on auth data
+        const newProfile = {
+          id: authUser.id,
+          email: authUser.email || '',
+          name: authUser.user_metadata.name || 'User',
+          avatar_url: authUser.user_metadata.avatar_url,
+          role: 'student',
+          is_teacher: authUser.user_metadata.is_teacher || false,
+        };
+        
+        const { error: insertError } = await supabase
+          .from('profiles')
+          .insert(newProfile);
+          
+        if (insertError) {
+          console.error('Error creating profile:', insertError);
+        } else {
+          setUser({
+            ...newProfile,
+            isTeacher: newProfile.is_teacher
+          });
+        }
       }
     } catch (error) {
-      console.error('Error fetching user profile:', error);
+      console.error('Error in fetchUserProfile:', error);
     } finally {
       setIsLoading(false);
     }
@@ -109,12 +139,14 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     setIsLoading(true);
     
     try {
+      console.log('Attempting login for:', email);
       const { data, error } = await supabase.auth.signInWithPassword({ 
         email, 
         password 
       });
       
       if (error) {
+        console.error('Login error:', error);
         throw error;
       }
       
@@ -132,6 +164,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     setIsLoading(true);
     
     try {
+      console.log('Registering user:', email, name, isTeacher);
       // Register the user with Supabase Auth
       const { data, error } = await supabase.auth.signUp({ 
         email, 
@@ -145,13 +178,21 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       });
       
       if (error) {
+        console.error('Registration error:', error);
         throw error;
+      }
+      
+      // If auto-confirm is disabled in Supabase, show a different message
+      if (!data.session) {
+        toast.success('Registration successful! Please check your email to confirm your account.');
+        navigate('/login');
+        setIsLoading(false);
+        return;
       }
       
       toast.success('Account created successfully!');
       
-      // Profile creation is handled by database trigger
-      // Redirect to dashboard
+      // Profile will be created by the onAuthStateChange handler
       navigate('/dashboard');
     } catch (error: any) {
       console.error('Registration error:', error);
@@ -163,6 +204,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
   const logout = async () => {
     try {
+      console.log('Logging out');
       const { error } = await supabase.auth.signOut();
       
       if (error) {
