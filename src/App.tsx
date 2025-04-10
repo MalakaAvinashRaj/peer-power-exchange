@@ -11,6 +11,14 @@ import Login from "./pages/Auth/Login";
 import Register from "./pages/Auth/Register";
 import Dashboard from "./pages/Dashboard";
 import NotFound from "./pages/NotFound";
+import Explore from "./pages/Explore";
+import HowItWorks from "./pages/HowItWorks";
+import About from "./pages/About";
+import Profile from "./pages/Profile";
+import Settings from "./pages/Settings";
+import Messages from "./pages/Messages";
+import Sessions from "./pages/Sessions";
+import Notifications from "./pages/Notifications";
 
 const queryClient = new QueryClient();
 
@@ -46,6 +54,52 @@ const AppRoutes = () => {
           </ProtectedRoute>
         } 
       />
+      <Route path="/explore" element={<Explore />} />
+      <Route path="/how-it-works" element={<HowItWorks />} />
+      <Route path="/about" element={<About />} />
+      
+      {/* Protected routes */}
+      <Route 
+        path="/profile" 
+        element={
+          <ProtectedRoute>
+            <Profile />
+          </ProtectedRoute>
+        } 
+      />
+      <Route 
+        path="/settings" 
+        element={
+          <ProtectedRoute>
+            <Settings />
+          </ProtectedRoute>
+        } 
+      />
+      <Route 
+        path="/messages" 
+        element={
+          <ProtectedRoute>
+            <Messages />
+          </ProtectedRoute>
+        } 
+      />
+      <Route 
+        path="/sessions" 
+        element={
+          <ProtectedRoute>
+            <Sessions />
+          </ProtectedRoute>
+        } 
+      />
+      <Route 
+        path="/notifications" 
+        element={
+          <ProtectedRoute>
+            <Notifications />
+          </ProtectedRoute>
+        } 
+      />
+      
       {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
       <Route path="*" element={<NotFound />} />
     </Routes>
