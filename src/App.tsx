@@ -19,12 +19,13 @@ import Settings from "./pages/Settings";
 import Messages from "./pages/Messages";
 import Sessions from "./pages/Sessions";
 import Notifications from "./pages/Notifications";
+import UserSkillsSelection from "./pages/UserSkillsSelection";
 
 const queryClient = new QueryClient();
 
 // Protected route wrapper
 const ProtectedRoute = ({ children }: { children: JSX.Element }) => {
-  const { isAuthenticated, isLoading } = useAuth();
+  const { isAuthenticated, isLoading, user } = useAuth();
   
   if (isLoading) {
     // Show loading state while checking authentication
@@ -34,6 +35,11 @@ const ProtectedRoute = ({ children }: { children: JSX.Element }) => {
   if (!isAuthenticated) {
     // Redirect to login if not authenticated
     return <Navigate to="/login" replace />;
+  }
+  
+  // Check if user has completed onboarding
+  if (user && !user.is_onboarded && window.location.pathname !== '/skills-selection') {
+    return <Navigate to="/skills-selection" replace />;
   }
   
   return children;
@@ -57,6 +63,16 @@ const AppRoutes = () => {
       <Route path="/explore" element={<Explore />} />
       <Route path="/how-it-works" element={<HowItWorks />} />
       <Route path="/about" element={<About />} />
+      
+      {/* User skills selection after signup */}
+      <Route 
+        path="/skills-selection" 
+        element={
+          <ProtectedRoute>
+            <UserSkillsSelection />
+          </ProtectedRoute>
+        } 
+      />
       
       {/* Protected routes */}
       <Route 
