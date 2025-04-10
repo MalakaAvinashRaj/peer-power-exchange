@@ -104,7 +104,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
           avatar_url: data.avatar_url,
           role: userRole,
           isTeacher: data.is_teacher || false,
-          is_onboarded: data.is_onboarded
+          is_onboarded: data.is_onboarded || false  // Include is_onboarded field
         };
         
         setUser(userProfile);
@@ -119,6 +119,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
           avatar_url: authUser.user_metadata.avatar_url,
           role: 'student' as const,
           is_teacher: authUser.user_metadata.is_teacher || false,
+          is_onboarded: false  // Set default value
         };
         
         const { error: insertError } = await supabase

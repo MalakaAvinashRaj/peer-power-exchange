@@ -1,5 +1,4 @@
-
-import React, { useState, useEffect } from 'react';
+import React, { useState } from 'react';
 import Navbar from '@/components/Navbar';
 import Footer from '@/components/Footer';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
@@ -9,58 +8,13 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import SkillCard from '@/components/SkillCard';
 import { popularSkills } from '@/utils/mockData';
 import { useAuth } from '@/contexts/AuthContext';
-import { supabase } from '@/integrations/supabase/client';
 import { Pencil, Plus } from 'lucide-react';
+import { useUserSkills } from '@/hooks/useUserSkills';
 
 const Profile = () => {
   const { user } = useAuth();
-  const [teachingSkills, setTeachingSkills] = useState<string[]>([]);
-  const [learningSkills, setLearningSkills] = useState<string[]>([]);
+  const { teachingSkills, learningSkills, isLoading } = useUserSkills(user?.id);
   const [isEditing, setIsEditing] = useState(false);
-  const [isLoading, setIsLoading] = useState(true);
-
-  // Fetch user skills on component mount
-  useEffect(() => {
-    const fetchUserSkills = async () => {
-      if (!user) return;
-      
-      setIsLoading(true);
-      
-      try {
-        // Fetch teaching skills
-        const { data: teachSkills, error: teachError } = await supabase
-          .from('user_skills')
-          .select('skill_name')
-          .eq('user_id', user.id)
-          .eq('type', 'teaching');
-          
-        if (teachError) throw teachError;
-        
-        // Fetch learning skills
-        const { data: learnSkills, error: learnError } = await supabase
-          .from('user_skills')
-          .select('skill_name')
-          .eq('user_id', user.id)
-          .eq('type', 'learning');
-          
-        if (learnError) throw learnError;
-        
-        if (teachSkills) {
-          setTeachingSkills(teachSkills.map(item => item.skill_name));
-        }
-        
-        if (learnSkills) {
-          setLearningSkills(learnSkills.map(item => item.skill_name));
-        }
-      } catch (error) {
-        console.error('Error fetching user skills:', error);
-      } finally {
-        setIsLoading(false);
-      }
-    };
-    
-    fetchUserSkills();
-  }, [user]);
 
   const handleEditProfile = () => {
     setIsEditing(true);

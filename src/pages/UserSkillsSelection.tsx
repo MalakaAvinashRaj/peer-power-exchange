@@ -5,9 +5,10 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import { Button } from '@/components/ui/button';
 import { Checkbox } from '@/components/ui/checkbox';
 import { supabase } from '@/integrations/supabase/client';
-import { toast } from '@/components/ui/use-toast';
+import { toast } from 'sonner';
 import Navbar from '@/components/Navbar';
 import Footer from '@/components/Footer';
+import { useUserSkills } from '@/hooks/useUserSkills';
 
 // Placeholder skill categories - these would come from the database
 const skillCategories = [
@@ -36,43 +37,28 @@ const skillCategories = [
 const UserSkillsSelection = () => {
   const { user, isLoading, refreshUser } = useAuth();
   const navigate = useNavigate();
-  const [teachingSkills, setTeachingSkills] = useState<string[]>([]);
-  const [learningSkills, setLearningSkills] = useState<string[]>([]);
+  const { teachingSkills, learningSkills, isLoading: skillsLoading } = useUserSkills(user?.id);
+  const [selectedTeachingSkills, setSelectedTeachingSkills] = useState<string[]>([]);
+  const [selectedLearningSkills, setSelectedLearningSkills] = useState<string[]>([]);
   const [isSubmitting, setIsSubmitting] = useState(false);
 
+  // Initialize with existing skills when they load
   useEffect(() => {
-    // If user already has skills set, navigate to dashboard
-    const checkUserSkills = async () => {
-      if (!user || isLoading) return;
-      
-      const { data: teachSkills, error: teachError } = await supabase
-        .from('user_skills')
-        .select('skill_name')
-        .eq('user_id', user.id)
-        .eq('type', 'teaching');
-        
-      const { data: learnSkills, error: learnError } = await supabase
-        .from('user_skills')
-        .select('skill_name')
-        .eq('user_id', user.id)
-        .eq('type', 'learning');
-        
-      if (teachError || learnError) {
-        console.error('Error fetching skills:', teachError || learnError);
-        return;
-      }
-      
-      if ((teachSkills && teachSkills.length > 0) || (learnSkills && learnSkills.length > 0)) {
-        // User already has skills, navigate to dashboard
-        navigate('/dashboard');
-      }
-    };
-    
-    checkUserSkills();
+    if (!skillsLoading) {
+      setSelectedTeachingSkills(teachingSkills);
+      setSelectedLearningSkills(learningSkills);
+    }
+  }, [teachingSkills, learningSkills, skillsLoading]);
+
+  useEffect(() => {
+    // If user already has skills set and is onboarded, navigate to dashboard
+    if (!isLoading && user?.is_onboarded) {
+      navigate('/dashboard');
+    }
   }, [user, isLoading, navigate]);
 
   const handleTeachingToggle = (skill: string) => {
-    setTeachingSkills(prev => 
+    setSelectedTeachingSkills(prev => 
       prev.includes(skill)
         ? prev.filter(s => s !== skill)
         : [...prev, skill]
@@ -80,7 +66,7 @@ const UserSkillsSelection = () => {
   };
 
   const handleLearningToggle = (skill: string) => {
-    setLearningSkills(prev => 
+    setSelectedLearningSkills(prev => 
       prev.includes(skill)
         ? prev.filter(s => s !== skill)
         : [...prev, skill]
@@ -90,38 +76,33 @@ const UserSkillsSelection = () => {
   const handleSubmit = async () => {
     if (!user) return;
     
-    if (teachingSkills.length === 0 && learningSkills.length === 0) {
-      toast({
-        title: "Selection Required",
-        description: "Please select at least one skill you can teach or want to learn",
-        variant: "destructive",
-      });
+    if (selectedTeachingSkills.length === 0 && selectedLearningSkills.length === 0) {
+      toast.error("Please select at least one skill you can teach or want to learn");
       return;
     }
     
     setIsSubmitting(true);
     
     try {
-      // Prepare skills for insertion
-      const skillsToInsert = [
-        ...teachingSkills.map(skill => ({
-          user_id: user.id,
-          skill_name: skill,
-          type: 'teaching'
-        })),
-        ...learningSkills.map(skill => ({
-          user_id: user.id,
-          skill_name: skill,
-          type: 'learning'
-        }))
+      // Use rpc calls to handle skills addition
+      const addSkillPromises = [
+        ...selectedTeachingSkills.map(skill => 
+          supabase.rpc('add_user_skill', { 
+            user_id_param: user.id, 
+            skill_name_param: skill,
+            type_param: 'teaching'
+          })
+        ),
+        ...selectedLearningSkills.map(skill => 
+          supabase.rpc('add_user_skill', { 
+            user_id_param: user.id, 
+            skill_name_param: skill,
+            type_param: 'learning'
+          })
+        )
       ];
       
-      // Insert skills
-      const { error } = await supabase
-        .from('user_skills')
-        .insert(skillsToInsert);
-        
-      if (error) throw error;
+      await Promise.all(addSkillPromises);
       
       // Update user is_onboarded status
       const { error: updateError } = await supabase
@@ -134,20 +115,13 @@ const UserSkillsSelection = () => {
       // Refresh user data to get updated profile
       await refreshUser();
       
-      toast({
-        title: "Skills Saved",
-        description: "Your skills have been saved successfully",
-      });
+      toast.success("Your skills have been saved successfully");
       
       // Navigate to dashboard
       navigate('/dashboard');
     } catch (error) {
       console.error('Error saving skills:', error);
-      toast({
-        title: "Error",
-        description: "Failed to save your skills. Please try again.",
-        variant: "destructive",
-      });
+      toast.error("Failed to save your skills. Please try again.");
     } finally {
       setIsSubmitting(false);
     }
@@ -177,7 +151,7 @@ const UserSkillsSelection = () => {
                           <div key={`teach-${skill}`} className="flex items-center space-x-2">
                             <Checkbox 
                               id={`teach-${skill}`} 
-                              checked={teachingSkills.includes(skill)}
+                              checked={selectedTeachingSkills.includes(skill)}
                               onCheckedChange={() => handleTeachingToggle(skill)}
                             />
                             <label 
@@ -205,7 +179,7 @@ const UserSkillsSelection = () => {
                           <div key={`learn-${skill}`} className="flex items-center space-x-2">
                             <Checkbox 
                               id={`learn-${skill}`} 
-                              checked={learningSkills.includes(skill)}
+                              checked={selectedLearningSkills.includes(skill)}
                               onCheckedChange={() => handleLearningToggle(skill)}
                             />
                             <label 
