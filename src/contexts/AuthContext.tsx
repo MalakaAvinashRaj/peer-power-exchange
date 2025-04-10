@@ -92,12 +92,15 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
       if (data) {
         console.log('Profile data:', data);
+        // Cast the role to the correct type
+        const userRole = (data.role || 'student') as 'student' | 'teacher' | 'admin';
+        
         const userProfile: UserProfile = {
           id: data.id,
           email: data.email,
           name: data.name,
           avatar_url: data.avatar_url,
-          role: (data.role as 'student' | 'teacher' | 'admin') || 'student',
+          role: userRole,
           isTeacher: data.is_teacher || false
         };
         
@@ -111,7 +114,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
           email: authUser.email || '',
           name: authUser.user_metadata.name || 'User',
           avatar_url: authUser.user_metadata.avatar_url,
-          role: 'student',
+          role: 'student' as const,
           is_teacher: authUser.user_metadata.is_teacher || false,
         };
         
