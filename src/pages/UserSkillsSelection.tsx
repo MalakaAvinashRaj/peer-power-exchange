@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '@/contexts/AuthContext';
@@ -37,7 +38,7 @@ const skillCategories = [
 const UserSkillsSelection = () => {
   const { user, isLoading, refreshUser } = useAuth();
   const navigate = useNavigate();
-  const { teachingSkills, learningSkills, isLoading: skillsLoading } = useUserSkills(user?.id);
+  const { teachingSkills, learningSkills, isLoading: skillsLoading, addUserSkill } = useUserSkills(user?.id);
   const [selectedTeachingSkills, setSelectedTeachingSkills] = useState<string[]>([]);
   const [selectedLearningSkills, setSelectedLearningSkills] = useState<string[]>([]);
   const [isSubmitting, setIsSubmitting] = useState(false);
@@ -87,18 +88,10 @@ const UserSkillsSelection = () => {
       // Use rpc calls to handle skills addition
       const addSkillPromises = [
         ...selectedTeachingSkills.map(skill => 
-          supabase.rpc('add_user_skill', { 
-            user_id_param: user.id, 
-            skill_name_param: skill,
-            type_param: 'teaching'
-          })
+          addUserSkill(user.id, skill, 'teaching')
         ),
         ...selectedLearningSkills.map(skill => 
-          supabase.rpc('add_user_skill', { 
-            user_id_param: user.id, 
-            skill_name_param: skill,
-            type_param: 'learning'
-          })
+          addUserSkill(user.id, skill, 'learning')
         )
       ];
       
