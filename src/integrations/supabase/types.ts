@@ -224,7 +224,26 @@ export type Database = {
       [_ in never]: never
     }
     Functions: {
-      [_ in never]: never
+      add_user_skill: {
+        Args: {
+          user_id_param: string
+          skill_name_param: string
+          type_param: string
+        }
+        Returns: undefined
+      }
+      get_user_skills_by_type: {
+        Args: { user_id_param: string; type_param: string }
+        Returns: string[]
+      }
+      remove_user_skill: {
+        Args: {
+          user_id_param: string
+          skill_name_param: string
+          type_param: string
+        }
+        Returns: undefined
+      }
     }
     Enums: {
       [_ in never]: never

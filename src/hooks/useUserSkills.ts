@@ -2,6 +2,7 @@
 import { useState, useEffect } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
+import type { Tables } from '@/integrations/supabase/types';
 
 export type UserSkill = {
   id: string;
@@ -32,8 +33,6 @@ export const useUserSkills = (userId?: string): UserSkillsResponse => {
       setIsLoading(true);
       setError(null);
       
-      // Using the "rpc" method to call a custom function instead of direct table access
-      // to avoid TypeScript errors until the DB types are updated
       const { data: teachSkills, error: teachError } = await supabase
         .rpc('get_user_skills_by_type', { 
           user_id_param: id, 
@@ -62,7 +61,6 @@ export const useUserSkills = (userId?: string): UserSkillsResponse => {
 
   const addUserSkill = async (id: string, skillName: string, type: 'teaching' | 'learning'): Promise<boolean> => {
     try {
-      // Using the "rpc" method to call a custom function
       const { error } = await supabase
         .rpc('add_user_skill', { 
           user_id_param: id, 
@@ -89,7 +87,6 @@ export const useUserSkills = (userId?: string): UserSkillsResponse => {
 
   const removeUserSkill = async (id: string, skillName: string, type: 'teaching' | 'learning'): Promise<boolean> => {
     try {
-      // Using the "rpc" method to call a custom function
       const { error } = await supabase
         .rpc('remove_user_skill', { 
           user_id_param: id, 
