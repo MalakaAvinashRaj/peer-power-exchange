@@ -57,6 +57,7 @@ export type Database = {
           created_at: string
           email: string
           id: string
+          is_onboarded: boolean | null
           is_teacher: boolean | null
           name: string
           role: string | null
@@ -67,6 +68,7 @@ export type Database = {
           created_at?: string
           email: string
           id: string
+          is_onboarded?: boolean | null
           is_teacher?: boolean | null
           name: string
           role?: string | null
@@ -77,6 +79,7 @@ export type Database = {
           created_at?: string
           email?: string
           id?: string
+          is_onboarded?: boolean | null
           is_teacher?: boolean | null
           name?: string
           role?: string | null
@@ -191,6 +194,30 @@ export type Database = {
             referencedColumns: ["id"]
           },
         ]
+      }
+      user_skills: {
+        Row: {
+          created_at: string
+          id: string
+          skill_name: string
+          type: string
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          skill_name: string
+          type: string
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          skill_name?: string
+          type?: string
+          user_id?: string
+        }
+        Relationships: []
       }
     }
     Views: {

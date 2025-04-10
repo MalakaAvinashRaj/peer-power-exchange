@@ -45,8 +45,13 @@ const Profile = () => {
           
         if (learnError) throw learnError;
         
-        setTeachingSkills(teachSkills.map(item => item.skill_name));
-        setLearningSkills(learnSkills.map(item => item.skill_name));
+        if (teachSkills) {
+          setTeachingSkills(teachSkills.map(item => item.skill_name));
+        }
+        
+        if (learnSkills) {
+          setLearningSkills(learnSkills.map(item => item.skill_name));
+        }
       } catch (error) {
         console.error('Error fetching user skills:', error);
       } finally {

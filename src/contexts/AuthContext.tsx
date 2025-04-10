@@ -12,6 +12,7 @@ type UserProfile = {
   avatar_url?: string;
   role: 'student' | 'teacher' | 'admin';
   isTeacher: boolean;
+  is_onboarded?: boolean;
 };
 
 interface AuthContextType {
@@ -21,6 +22,7 @@ interface AuthContextType {
   login: (email: string, password: string) => Promise<void>;
   register: (email: string, password: string, name: string, isTeacher: boolean) => Promise<void>;
   logout: () => Promise<void>;
+  refreshUser: () => Promise<void>;
 }
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
@@ -101,7 +103,8 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
           name: data.name,
           avatar_url: data.avatar_url,
           role: userRole,
-          isTeacher: data.is_teacher || false
+          isTeacher: data.is_teacher || false,
+          is_onboarded: data.is_onboarded
         };
         
         setUser(userProfile);
@@ -135,6 +138,13 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       console.error('Error in fetchUserProfile:', error);
     } finally {
       setIsLoading(false);
+    }
+  };
+
+  // Add refreshUser method
+  const refreshUser = async () => {
+    if (session?.user) {
+      await fetchUserProfile(session.user);
     }
   };
 
@@ -232,7 +242,8 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         isLoading,
         login,
         register,
-        logout
+        logout,
+        refreshUser
       }}
     >
       {children}

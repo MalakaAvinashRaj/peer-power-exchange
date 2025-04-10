@@ -38,7 +38,7 @@ const ProtectedRoute = ({ children }: { children: JSX.Element }) => {
   }
   
   // Check if user has completed onboarding
-  if (user && !user.is_onboarded && window.location.pathname !== '/skills-selection') {
+  if (user && user.is_onboarded === false && window.location.pathname !== '/skills-selection') {
     return <Navigate to="/skills-selection" replace />;
   }
   

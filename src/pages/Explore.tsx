@@ -19,6 +19,7 @@ const Explore = () => {
       if (!user) return;
       
       try {
+        // Use the correct query that matches the database schema
         const { data, error } = await supabase
           .from('user_skills')
           .select('skill_name')
@@ -27,17 +28,20 @@ const Explore = () => {
           
         if (error) throw error;
         
-        setUserLearningSkills(data.map(item => item.skill_name));
+        if (data) {
+          setUserLearningSkills(data.map(item => item.skill_name));
         
-        // In a real app, we would fetch recommended skills based on the user's learning skills
-        // For now, we'll filter the mock data to simulate personalization
-        const recommended = popularSkills.filter(skill => 
-          userLearningSkills.some(userSkill => 
-            skill.tags && skill.tags.includes(userSkill)
-          )
-        );
-        
-        setRecommendedSkills(recommended.length > 0 ? recommended : popularSkills.slice(0, 4));
+          // In a real app, we would fetch recommended skills based on the user's learning skills
+          // For now, we'll filter the mock data to simulate personalization
+          const userSkillsArray = data.map(item => item.skill_name);
+          
+          const recommended = popularSkills.filter(skill => 
+            userSkillsArray.length > 0 && skill.tags && 
+            skill.tags.some(tag => userSkillsArray.includes(tag))
+          );
+          
+          setRecommendedSkills(recommended.length > 0 ? recommended : popularSkills.slice(0, 4));
+        }
       } catch (error) {
         console.error('Error fetching user learning skills:', error);
       } finally {
@@ -46,7 +50,7 @@ const Explore = () => {
     };
     
     fetchUserLearningSkills();
-  }, [user, userLearningSkills.length]);
+  }, [user]);
 
   return (
     <div className="flex flex-col min-h-screen">

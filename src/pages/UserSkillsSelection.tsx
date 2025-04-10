@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '@/contexts/AuthContext';
@@ -124,11 +123,13 @@ const UserSkillsSelection = () => {
         
       if (error) throw error;
       
-      // Update user is_onboarded status if needed
-      await supabase
+      // Update user is_onboarded status
+      const { error: updateError } = await supabase
         .from('profiles')
         .update({ is_onboarded: true })
         .eq('id', user.id);
+      
+      if (updateError) throw updateError;
       
       // Refresh user data to get updated profile
       await refreshUser();
