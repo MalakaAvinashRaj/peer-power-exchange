@@ -2,184 +2,101 @@
 import React from 'react';
 import Navbar from '@/components/Navbar';
 import Footer from '@/components/Footer';
-import { useAuth } from '@/contexts/AuthContext';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
-import { Badge } from '@/components/ui/badge';
+import { Button } from '@/components/ui/button';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { SkillCard } from '@/components/SkillCard';
-import { popularSkills, recentSkills } from '@/utils/mockData';
-import { Star, Calendar, Clock, Award } from 'lucide-react';
+import SkillCard from '@/components/SkillCard';
+import { popularSkills } from '@/utils/mockData';
+import { useAuth } from '@/contexts/AuthContext';
 
 const Profile = () => {
   const { user } = useAuth();
-  
-  if (!user) {
-    return <div>Loading...</div>;
-  }
-
-  const userInitials = user.name.split(' ').map(n => n[0]).join('').toUpperCase();
-  
-  // Sample mock data
-  const teachingSkills = popularSkills.slice(0, 2);
-  const learningSkills = recentSkills.slice(0, 3);
-  const upcomingSessions = [
-    { 
-      id: 1, 
-      title: 'JavaScript Fundamentals', 
-      date: '2025-04-15', 
-      time: '15:00', 
-      duration: 60, 
-      type: 'teaching' 
-    },
-    { 
-      id: 2, 
-      title: 'Watercolor Basics', 
-      date: '2025-04-17', 
-      time: '18:30', 
-      duration: 90, 
-      type: 'learning' 
-    }
-  ];
   
   return (
     <div className="flex flex-col min-h-screen">
       <Navbar />
       <main className="flex-grow container py-8">
-        <div className="mb-8">
-          <Card>
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
+          {/* Profile Sidebar */}
+          <Card className="md:col-span-1">
             <CardContent className="p-6">
-              <div className="flex flex-col md:flex-row gap-6 items-center md:items-start">
-                <Avatar className="h-24 w-24">
-                  <AvatarImage src={user.avatar_url} alt={user.name} />
-                  <AvatarFallback className="text-2xl">{userInitials}</AvatarFallback>
+              <div className="flex flex-col items-center text-center">
+                <Avatar className="h-24 w-24 mb-4">
+                  <AvatarImage src={user?.avatar_url || ''} alt={user?.name || 'User'} />
+                  <AvatarFallback>{user?.name ? user.name.charAt(0) : 'U'}</AvatarFallback>
                 </Avatar>
-                
-                <div className="space-y-4 text-center md:text-left flex-1">
-                  <div>
-                    <h1 className="text-3xl font-bold">{user.name}</h1>
-                    <p className="text-muted-foreground">{user.email}</p>
-                    <div className="flex gap-2 mt-2 justify-center md:justify-start">
-                      <Badge variant={user.isTeacher ? "default" : "outline"}>
-                        {user.isTeacher ? "Teacher" : "Student"}
-                      </Badge>
-                      <Badge variant="outline">{user.role}</Badge>
-                    </div>
-                  </div>
-                  
-                  <div className="flex gap-4 flex-wrap justify-center md:justify-start">
-                    <div className="flex items-center gap-1">
-                      <Star className="h-4 w-4 text-yellow-500" />
-                      <span>4.9/5 Rating</span>
-                    </div>
-                    <div className="flex items-center gap-1">
-                      <Calendar className="h-4 w-4" />
-                      <span>Joined April 2025</span>
-                    </div>
-                    <div className="flex items-center gap-1">
-                      <Clock className="h-4 w-4" />
-                      <span>10 Sessions Completed</span>
-                    </div>
-                    <div className="flex items-center gap-1">
-                      <Award className="h-4 w-4" />
-                      <span>5 Skills</span>
-                    </div>
-                  </div>
+                <h2 className="text-xl font-bold">{user?.name || 'User Name'}</h2>
+                <p className="text-muted-foreground mb-4">{user?.email || 'email@example.com'}</p>
+                <Button className="w-full mb-2">Edit Profile</Button>
+                <Button variant="outline" className="w-full">Share Profile</Button>
+              </div>
+              
+              <div className="mt-6">
+                <h3 className="font-medium mb-2">Skills I Teach</h3>
+                <div className="flex flex-wrap gap-2">
+                  <span className="skill-tag">JavaScript</span>
+                  <span className="skill-tag-purple">React</span>
+                  <span className="skill-tag">Web Development</span>
+                </div>
+              </div>
+              
+              <div className="mt-4">
+                <h3 className="font-medium mb-2">Skills I Want to Learn</h3>
+                <div className="flex flex-wrap gap-2">
+                  <span className="skill-tag">Python</span>
+                  <span className="skill-tag-purple">Machine Learning</span>
+                  <span className="skill-tag">Data Science</span>
                 </div>
               </div>
             </CardContent>
           </Card>
-        </div>
-        
-        <Tabs defaultValue="skills" className="space-y-6">
-          <TabsList className="grid w-full max-w-md grid-cols-3">
-            <TabsTrigger value="skills">Skills</TabsTrigger>
-            <TabsTrigger value="sessions">Sessions</TabsTrigger>
-            <TabsTrigger value="reviews">Reviews</TabsTrigger>
-          </TabsList>
           
-          <TabsContent value="skills" className="space-y-6">
-            <Card>
-              <CardHeader>
-                <CardTitle>Teaching</CardTitle>
-                <CardDescription>Skills you're currently teaching</CardDescription>
-              </CardHeader>
-              <CardContent>
+          {/* Main Content */}
+          <div className="md:col-span-2">
+            <Tabs defaultValue="teaching">
+              <TabsList className="grid w-full grid-cols-3">
+                <TabsTrigger value="teaching">Teaching</TabsTrigger>
+                <TabsTrigger value="learning">Learning</TabsTrigger>
+                <TabsTrigger value="history">History</TabsTrigger>
+              </TabsList>
+              <TabsContent value="teaching" className="mt-6">
+                <h3 className="text-xl font-semibold mb-4">Skills I Teach</h3>
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                  {teachingSkills.map(skill => (
+                  {popularSkills.slice(0, 2).map((skill) => (
                     <SkillCard key={skill.id} {...skill} />
                   ))}
                 </div>
-              </CardContent>
-            </Card>
-            
-            <Card>
-              <CardHeader>
-                <CardTitle>Learning</CardTitle>
-                <CardDescription>Skills you're currently learning</CardDescription>
-              </CardHeader>
-              <CardContent>
-                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-                  {learningSkills.map(skill => (
+              </TabsContent>
+              <TabsContent value="learning" className="mt-6">
+                <h3 className="text-xl font-semibold mb-4">Skills I'm Learning</h3>
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  {popularSkills.slice(2, 4).map((skill) => (
                     <SkillCard key={skill.id} {...skill} />
                   ))}
                 </div>
-              </CardContent>
-            </Card>
-          </TabsContent>
-          
-          <TabsContent value="sessions" className="space-y-6">
-            <Card>
-              <CardHeader>
-                <CardTitle>Upcoming Sessions</CardTitle>
-                <CardDescription>Your scheduled teaching and learning sessions</CardDescription>
-              </CardHeader>
-              <CardContent>
+              </TabsContent>
+              <TabsContent value="history" className="mt-6">
+                <h3 className="text-xl font-semibold mb-4">Session History</h3>
                 <div className="space-y-4">
-                  {upcomingSessions.map(session => (
-                    <div key={session.id} className="flex items-start gap-4 p-3 rounded-lg border">
-                      <div className={`rounded-full p-2 ${
-                        session.type === 'teaching' 
-                          ? 'bg-skillsync-blue/10' 
-                          : 'bg-skillsync-purple/10'
-                      }`}>
-                        <Calendar className={`h-5 w-5 ${
-                          session.type === 'teaching' 
-                            ? 'text-skillsync-blue' 
-                            : 'text-skillsync-purple'
-                        }`} />
-                      </div>
-                      <div className="flex-1">
-                        <h3 className="font-medium">{session.title}</h3>
-                        <p className="text-sm text-muted-foreground">
-                          {session.type === 'teaching' ? 'Teaching' : 'Learning'}
-                        </p>
-                        <div className="flex items-center gap-2 mt-1 text-sm">
-                          <Calendar className="h-3.5 w-3.5" />
-                          <span>{session.date}</span>
-                          <Clock className="h-3.5 w-3.5 ml-2" />
-                          <span>{session.time} ({session.duration} min)</span>
+                  {[1, 2, 3].map((session) => (
+                    <Card key={session}>
+                      <CardContent className="p-4">
+                        <div className="flex justify-between items-center">
+                          <div>
+                            <h4 className="font-semibold">JavaScript Session #{session}</h4>
+                            <p className="text-sm text-muted-foreground">April {session + 1}, 2025</p>
+                          </div>
+                          <Button variant="outline" size="sm">View Details</Button>
                         </div>
-                      </div>
-                    </div>
+                      </CardContent>
+                    </Card>
                   ))}
                 </div>
-              </CardContent>
-            </Card>
-          </TabsContent>
-          
-          <TabsContent value="reviews" className="space-y-6">
-            <Card>
-              <CardHeader>
-                <CardTitle>Reviews</CardTitle>
-                <CardDescription>Reviews from your students and teachers</CardDescription>
-              </CardHeader>
-              <CardContent>
-                <p className="text-center py-6 text-muted-foreground">No reviews yet</p>
-              </CardContent>
-            </Card>
-          </TabsContent>
-        </Tabs>
+              </TabsContent>
+            </Tabs>
+          </div>
+        </div>
       </main>
       <Footer />
     </div>

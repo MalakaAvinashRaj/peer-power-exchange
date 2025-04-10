@@ -3,7 +3,7 @@ import React from 'react';
 import Navbar from '@/components/Navbar';
 import Footer from '@/components/Footer';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
-import { SkillCarousel } from '@/components/SkillCarousel';
+import SkillCarousel from '@/components/SkillCarousel';
 import { popularSkills, recentSkills, trendingSkills } from '@/utils/mockData';
 
 const Explore = () => {
