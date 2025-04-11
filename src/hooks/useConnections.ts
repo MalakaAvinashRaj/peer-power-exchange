@@ -30,8 +30,8 @@ export const useConnections = () => {
 
     try {
       setIsSearching(true);
-      const { data, error } = await (supabase
-        .rpc('search_users', { search_query: query }) as any);
+      const { data, error } = await supabase
+        .rpc('search_users', { search_query: query });
 
       if (error) throw error;
       setSearchResults(data || []);
@@ -45,11 +45,11 @@ export const useConnections = () => {
 
   const sendConnectionRequest = async (receiverId: string) => {
     try {
-      const { data, error } = await (supabase
+      const { data, error } = await supabase
         .rpc('create_connection', { 
           sender_id_param: supabase.auth.getUser()?.data?.user?.id,
           receiver_id_param: receiverId 
-        }) as any);
+        });
 
       if (error) {
         if (error.message.includes('Connection request already exists')) {
@@ -71,11 +71,11 @@ export const useConnections = () => {
 
   const getConnectionStatus = async (otherUserId: string): Promise<ConnectionStatus> => {
     try {
-      const { data, error } = await (supabase
+      const { data, error } = await supabase
         .rpc('get_connection_status', { 
           user_id_param: supabase.auth.getUser()?.data?.user?.id,
           other_user_id_param: otherUserId 
-        }) as any);
+        });
 
       if (error) throw error;
       return data as ConnectionStatus;
@@ -88,10 +88,10 @@ export const useConnections = () => {
   const getPendingConnections = async () => {
     try {
       setIsLoadingPendingConnections(true);
-      const { data, error } = await (supabase
+      const { data, error } = await supabase
         .rpc('get_pending_connections', { 
           user_id_param: supabase.auth.getUser()?.data?.user?.id 
-        }) as any);
+        });
 
       if (error) throw error;
       setPendingConnections(data || []);
@@ -105,11 +105,11 @@ export const useConnections = () => {
 
   const respondToConnectionRequest = async (connectionId: string, status: 'accepted' | 'declined') => {
     try {
-      const { error } = await (supabase
+      const { error } = await supabase
         .rpc('update_connection_status', { 
           connection_id_param: connectionId,
           status_param: status 
-        }) as any);
+        });
 
       if (error) throw error;
       

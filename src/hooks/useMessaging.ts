@@ -19,11 +19,11 @@ export const useMessaging = (otherUserId?: string) => {
 
   const checkCanMessage = async (userId: string, otherUserId: string) => {
     try {
-      const { data, error } = await (supabase
+      const { data, error } = await supabase
         .rpc('can_message', { 
           user1_id: userId,
           user2_id: otherUserId 
-        }) as any);
+        });
 
       if (error) throw error;
       return data as boolean;
