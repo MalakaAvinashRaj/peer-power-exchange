@@ -9,6 +9,33 @@ export type Json =
 export type Database = {
   public: {
     Tables: {
+      connections: {
+        Row: {
+          created_at: string
+          id: string
+          receiver_id: string
+          sender_id: string
+          status: string
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          receiver_id: string
+          sender_id: string
+          status?: string
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          receiver_id?: string
+          sender_id?: string
+          status?: string
+          updated_at?: string
+        }
+        Relationships: []
+      }
       messages: {
         Row: {
           content: string
@@ -54,6 +81,8 @@ export type Database = {
       profiles: {
         Row: {
           avatar_url: string | null
+          bio: string | null
+          contact_info: Json | null
           created_at: string
           email: string
           id: string
@@ -62,9 +91,12 @@ export type Database = {
           name: string
           role: string | null
           updated_at: string
+          username: string | null
         }
         Insert: {
           avatar_url?: string | null
+          bio?: string | null
+          contact_info?: Json | null
           created_at?: string
           email: string
           id: string
@@ -73,9 +105,12 @@ export type Database = {
           name: string
           role?: string | null
           updated_at?: string
+          username?: string | null
         }
         Update: {
           avatar_url?: string | null
+          bio?: string | null
+          contact_info?: Json | null
           created_at?: string
           email?: string
           id?: string
@@ -84,6 +119,7 @@ export type Database = {
           name?: string
           role?: string | null
           updated_at?: string
+          username?: string | null
         }
         Relationships: []
       }
@@ -232,6 +268,29 @@ export type Database = {
         }
         Returns: undefined
       }
+      can_message: {
+        Args: { user1_id: string; user2_id: string }
+        Returns: boolean
+      }
+      create_connection: {
+        Args: { sender_id_param: string; receiver_id_param: string }
+        Returns: string
+      }
+      get_connection_status: {
+        Args: { user_id_param: string; other_user_id_param: string }
+        Returns: string
+      }
+      get_pending_connections: {
+        Args: { user_id_param: string }
+        Returns: {
+          id: string
+          sender_id: string
+          sender_name: string
+          sender_username: string
+          sender_avatar_url: string
+          created_at: string
+        }[]
+      }
       get_user_skills_by_type: {
         Args: { user_id_param: string; type_param: string }
         Returns: string[]
@@ -242,6 +301,27 @@ export type Database = {
           skill_name_param: string
           type_param: string
         }
+        Returns: undefined
+      }
+      search_users: {
+        Args: { search_query: string }
+        Returns: {
+          avatar_url: string | null
+          bio: string | null
+          contact_info: Json | null
+          created_at: string
+          email: string
+          id: string
+          is_onboarded: boolean | null
+          is_teacher: boolean | null
+          name: string
+          role: string | null
+          updated_at: string
+          username: string | null
+        }[]
+      }
+      update_connection_status: {
+        Args: { connection_id_param: string; status_param: string }
         Returns: undefined
       }
     }

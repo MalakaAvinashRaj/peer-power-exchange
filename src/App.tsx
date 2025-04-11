@@ -20,6 +20,7 @@ import Messages from "./pages/Messages";
 import Sessions from "./pages/Sessions";
 import Notifications from "./pages/Notifications";
 import UserSkillsSelection from "./pages/UserSkillsSelection";
+import Network from "./pages/Network";
 
 const queryClient = new QueryClient();
 
@@ -84,6 +85,14 @@ const AppRoutes = () => {
         } 
       />
       <Route 
+        path="/profile/:userId" 
+        element={
+          <ProtectedRoute>
+            <Profile />
+          </ProtectedRoute>
+        } 
+      />
+      <Route 
         path="/settings" 
         element={
           <ProtectedRoute>
@@ -96,6 +105,14 @@ const AppRoutes = () => {
         element={
           <ProtectedRoute>
             <Messages />
+          </ProtectedRoute>
+        } 
+      />
+      <Route 
+        path="/network" 
+        element={
+          <ProtectedRoute>
+            <Network />
           </ProtectedRoute>
         } 
       />

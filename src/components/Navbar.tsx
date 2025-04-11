@@ -9,7 +9,8 @@ import {
   Calendar, 
   Bell, 
   Menu,
-  LogOut
+  LogOut,
+  Users
 } from 'lucide-react';
 import { 
   DropdownMenu,
@@ -62,14 +63,25 @@ const Navbar = () => {
             <>
               {!isMobile && (
                 <>
-                  <Button variant="outline" size="icon" className="text-muted-foreground">
-                    <MessageSquare size={18} />
+                  <Button variant="outline" size="icon" className="text-muted-foreground" asChild>
+                    <Link to="/messages">
+                      <MessageSquare size={18} />
+                    </Link>
                   </Button>
-                  <Button variant="outline" size="icon" className="text-muted-foreground">
-                    <Calendar size={18} />
+                  <Button variant="outline" size="icon" className="text-muted-foreground" asChild>
+                    <Link to="/network">
+                      <Users size={18} />
+                    </Link>
                   </Button>
-                  <Button variant="outline" size="icon" className="text-muted-foreground">
-                    <Bell size={18} />
+                  <Button variant="outline" size="icon" className="text-muted-foreground" asChild>
+                    <Link to="/sessions">
+                      <Calendar size={18} />
+                    </Link>
+                  </Button>
+                  <Button variant="outline" size="icon" className="text-muted-foreground" asChild>
+                    <Link to="/notifications">
+                      <Bell size={18} />
+                    </Link>
                   </Button>
                 </>
               )}
@@ -94,6 +106,9 @@ const Navbar = () => {
                   </DropdownMenuItem>
                   <DropdownMenuItem asChild>
                     <Link to="/dashboard">Dashboard</Link>
+                  </DropdownMenuItem>
+                  <DropdownMenuItem asChild>
+                    <Link to="/network">Network</Link>
                   </DropdownMenuItem>
                   <DropdownMenuItem asChild>
                     <Link to="/settings">Settings</Link>
@@ -141,6 +156,9 @@ const Navbar = () => {
                   <>
                     <DropdownMenuItem asChild>
                       <Link to="/messages">Messages</Link>
+                    </DropdownMenuItem>
+                    <DropdownMenuItem asChild>
+                      <Link to="/network">Network</Link>
                     </DropdownMenuItem>
                     <DropdownMenuItem asChild>
                       <Link to="/sessions">Sessions</Link>
