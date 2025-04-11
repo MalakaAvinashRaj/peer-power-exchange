@@ -30,11 +30,11 @@ export const useConnections = () => {
 
     try {
       setIsSearching(true);
-      const { data, error } = await supabase
+      const response = await supabase
         .rpc('search_users', { search_query: query });
 
-      if (error) throw error;
-      setSearchResults(data || []);
+      if (response.error) throw response.error;
+      setSearchResults(response.data || []);
     } catch (error) {
       console.error('Error searching users:', error);
       toast.error('Failed to search users');
@@ -45,17 +45,17 @@ export const useConnections = () => {
 
   const sendConnectionRequest = async (receiverId: string) => {
     try {
-      const { data, error } = await supabase
+      const response = await supabase
         .rpc('create_connection', { 
           sender_id_param: supabase.auth.getUser()?.data?.user?.id,
           receiver_id_param: receiverId 
         });
 
-      if (error) {
-        if (error.message.includes('Connection request already exists')) {
+      if (response.error) {
+        if (response.error.message.includes('Connection request already exists')) {
           toast.error('Connection request already exists');
         } else {
-          throw error;
+          throw response.error;
         }
         return false;
       }
@@ -71,14 +71,14 @@ export const useConnections = () => {
 
   const getConnectionStatus = async (otherUserId: string): Promise<ConnectionStatus> => {
     try {
-      const { data, error } = await supabase
+      const response = await supabase
         .rpc('get_connection_status', { 
           user_id_param: supabase.auth.getUser()?.data?.user?.id,
           other_user_id_param: otherUserId 
         });
 
-      if (error) throw error;
-      return data as ConnectionStatus;
+      if (response.error) throw response.error;
+      return response.data as ConnectionStatus;
     } catch (error) {
       console.error('Error getting connection status:', error);
       return 'none';
@@ -88,13 +88,13 @@ export const useConnections = () => {
   const getPendingConnections = async () => {
     try {
       setIsLoadingPendingConnections(true);
-      const { data, error } = await supabase
+      const response = await supabase
         .rpc('get_pending_connections', { 
           user_id_param: supabase.auth.getUser()?.data?.user?.id 
         });
 
-      if (error) throw error;
-      setPendingConnections(data || []);
+      if (response.error) throw response.error;
+      setPendingConnections(response.data || []);
     } catch (error) {
       console.error('Error getting pending connections:', error);
       toast.error('Failed to get pending connection requests');
@@ -105,13 +105,13 @@ export const useConnections = () => {
 
   const respondToConnectionRequest = async (connectionId: string, status: 'accepted' | 'declined') => {
     try {
-      const { error } = await supabase
+      const response = await supabase
         .rpc('update_connection_status', { 
           connection_id_param: connectionId,
           status_param: status 
         });
 
-      if (error) throw error;
+      if (response.error) throw response.error;
       
       // Update local state to remove the connection
       setPendingConnections(prev => prev.filter(conn => conn.id !== connectionId));

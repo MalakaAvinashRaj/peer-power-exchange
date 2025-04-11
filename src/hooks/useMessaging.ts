@@ -19,14 +19,14 @@ export const useMessaging = (otherUserId?: string) => {
 
   const checkCanMessage = async (userId: string, otherUserId: string) => {
     try {
-      const { data, error } = await supabase
+      const response = await supabase
         .rpc('can_message', { 
           user1_id: userId,
           user2_id: otherUserId 
         });
 
-      if (error) throw error;
-      return data as boolean;
+      if (response.error) throw response.error;
+      return response.data as boolean;
     } catch (error) {
       console.error('Error checking if users can message:', error);
       return false;
@@ -91,7 +91,7 @@ export const useMessaging = (otherUserId?: string) => {
         return false;
       }
       
-      const { data, error } = await supabase
+      const response = await supabase
         .from('messages')
         .insert({
           sender_id: userId,
@@ -102,10 +102,10 @@ export const useMessaging = (otherUserId?: string) => {
         .select()
         .single();
 
-      if (error) throw error;
+      if (response.error) throw response.error;
       
       // Add the new message to the state
-      setMessages(prev => [...prev, data]);
+      setMessages(prev => [...prev, response.data]);
       return true;
     } catch (error) {
       console.error('Error sending message:', error);
