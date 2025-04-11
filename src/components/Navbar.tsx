@@ -3,7 +3,6 @@ import React from 'react';
 import { Link } from 'react-router-dom';
 import { Button } from '@/components/ui/button';
 import { 
-  Search, 
   User, 
   MessageSquare, 
   Calendar, 
@@ -20,6 +19,7 @@ import {
 } from '@/components/ui/dropdown-menu';
 import { useIsMobile } from '@/hooks/use-mobile';
 import { useAuth } from '@/contexts/AuthContext';
+import SearchDialog from './SearchDialog';
 
 const Navbar = () => {
   const isMobile = useIsMobile();
@@ -55,9 +55,7 @@ const Navbar = () => {
 
         {/* Right side: Search & Actions */}
         <div className="flex items-center gap-2">
-          <Button variant="outline" size="icon" className="text-muted-foreground">
-            <Search size={18} />
-          </Button>
+          <SearchDialog />
           
           {isAuthenticated && user ? (
             <>
