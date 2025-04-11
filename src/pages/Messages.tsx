@@ -11,7 +11,6 @@ import { Search, Send, User } from 'lucide-react';
 import { useMessaging } from '@/hooks/useMessaging';
 import { supabase } from '@/integrations/supabase/client';
 import { format } from 'date-fns';
-import { useConnections } from '@/hooks/useConnections';
 import { toast } from 'sonner';
 
 type Conversation = {
@@ -40,6 +39,7 @@ const Messages = () => {
       
       try {
         setIsLoadingConnections(true);
+        // Using raw SQL query through .rpc instead of .from
         const { data, error } = await supabase
           .from('connections')
           .select(`
