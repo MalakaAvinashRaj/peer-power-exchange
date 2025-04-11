@@ -45,9 +45,11 @@ export const useConnections = () => {
 
   const sendConnectionRequest = async (receiverId: string) => {
     try {
+      const { data: { user } } = await supabase.auth.getUser();
+      
       const response = await supabase
         .rpc('create_connection', { 
-          sender_id_param: supabase.auth.getUser()?.data?.user?.id,
+          sender_id_param: user?.id,
           receiver_id_param: receiverId 
         });
 
@@ -71,9 +73,11 @@ export const useConnections = () => {
 
   const getConnectionStatus = async (otherUserId: string): Promise<ConnectionStatus> => {
     try {
+      const { data: { user } } = await supabase.auth.getUser();
+      
       const response = await supabase
         .rpc('get_connection_status', { 
-          user_id_param: supabase.auth.getUser()?.data?.user?.id,
+          user_id_param: user?.id,
           other_user_id_param: otherUserId 
         });
 
@@ -88,9 +92,11 @@ export const useConnections = () => {
   const getPendingConnections = async () => {
     try {
       setIsLoadingPendingConnections(true);
+      const { data: { user } } = await supabase.auth.getUser();
+      
       const response = await supabase
         .rpc('get_pending_connections', { 
-          user_id_param: supabase.auth.getUser()?.data?.user?.id 
+          user_id_param: user?.id 
         });
 
       if (response.error) throw response.error;

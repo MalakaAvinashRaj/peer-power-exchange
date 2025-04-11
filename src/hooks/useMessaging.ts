@@ -116,10 +116,14 @@ export const useMessaging = (otherUserId?: string) => {
 
   // If otherUserId is provided, fetch messages on mount
   useEffect(() => {
-    const currentUser = supabase.auth.getUser()?.data?.user;
-    if (currentUser?.id && otherUserId) {
-      fetchMessages(currentUser.id, otherUserId);
-    }
+    const fetchUserMessages = async () => {
+      const { data: { user } } = await supabase.auth.getUser();
+      if (user?.id && otherUserId) {
+        await fetchMessages(user.id, otherUserId);
+      }
+    };
+    
+    fetchUserMessages();
   }, [otherUserId]);
 
   return {
