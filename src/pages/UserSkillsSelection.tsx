@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { toast } from 'sonner';
@@ -114,6 +115,7 @@ const UserSkillsSelection = () => {
               <Label htmlFor="skillType">I am primarily...</Label>
               <div className="flex gap-2">
                 <Button
+                  type="button"
                   variant={skillType === 'learning' ? 'default' : 'outline'}
                   onClick={() => setSkillType('learning')}
                   disabled={isSubmitting}
@@ -121,6 +123,7 @@ const UserSkillsSelection = () => {
                   Learning
                 </Button>
                 <Button
+                  type="button"
                   variant={skillType === 'teaching' ? 'default' : 'outline'}
                   onClick={() => setSkillType('teaching')}
                   disabled={isSubmitting}
@@ -136,7 +139,7 @@ const UserSkillsSelection = () => {
                 id="skills"
                 options={skillOptions}
                 value={selectedSkills}
-                onChange={(values) => setSelectedSkills(values as string[])}
+                onChange={(values) => setSelectedSkills(values)}
                 placeholder="Select your skills"
                 disabled={isSubmitting}
               />

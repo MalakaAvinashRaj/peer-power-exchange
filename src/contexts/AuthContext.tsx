@@ -26,6 +26,7 @@ interface AuthContextType {
   signIn: (email: string, password: string) => Promise<AuthResponse>;
   signUp: (email: string, password: string, userData: UserFormData) => Promise<AuthResponse>;
   signOut: () => Promise<void>;
+  logout: () => Promise<void>; // Add alias for signOut
   updateUserData: () => Promise<void>;
   generateUsername: (fullName: string) => Promise<string>;
   isAuthenticated: boolean;
@@ -233,6 +234,7 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
     signIn,
     signUp,
     signOut,
+    logout: signOut, // Add alias for signOut
     updateUserData,
     generateUsername,
     isAuthenticated: !!user,
