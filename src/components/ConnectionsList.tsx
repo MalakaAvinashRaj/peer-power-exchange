@@ -8,7 +8,6 @@ import { Link } from 'react-router-dom';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/contexts/AuthContext';
 import { toast } from 'sonner';
-import type { Tables } from '@/integrations/supabase/types';
 
 type Connection = {
   id: string;
@@ -30,7 +29,7 @@ const ConnectionsList = () => {
       try {
         setIsLoading(true);
         
-        // Use Supabase RPC function to get connections instead of direct queries
+        // Use Supabase RPC function to get connections
         const { data, error } = await supabase
           .rpc('get_connections', { 
             user_id_param: user.id 
@@ -39,7 +38,7 @@ const ConnectionsList = () => {
         if (error) throw error;
         
         if (data) {
-          setConnections(data);
+          setConnections(data as Connection[]);
         } else {
           setConnections([]);
         }

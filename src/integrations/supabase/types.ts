@@ -280,6 +280,16 @@ export type Database = {
         Args: { user_id_param: string; other_user_id_param: string }
         Returns: string
       }
+      get_connections: {
+        Args: { user_id_param: string }
+        Returns: {
+          id: string
+          user_id: string
+          name: string
+          username: string
+          avatar_url: string
+        }[]
+      }
       get_pending_connections: {
         Args: { user_id_param: string }
         Returns: {
