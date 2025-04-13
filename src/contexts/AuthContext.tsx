@@ -37,69 +37,83 @@ export const AuthContext = createContext<AuthContextType | undefined>(undefined)
 export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
   const [user, setUser] = useState<User | null>(null);
   const [isLoading, setIsLoading] = useState(true);
-  const [session, setSession] = useState(null);
+  const [isInitialized, setIsInitialized] = useState(false);
 
+  // Initialize auth state by checking for existing session
   useEffect(() => {
-    const getSession = async () => {
-      const { data: { session } } = await supabase.auth.getSession();
-      setSession(session);
-    };
-
-    getSession();
-
-    supabase.auth.onAuthStateChange((_event, session) => {
-      setSession(session);
-    });
-  }, []);
-
-  useEffect(() => {
-    const fetchUser = async () => {
-      if (!session?.user.id) {
+    const initializeAuth = async () => {
+      setIsLoading(true);
+      
+      try {
+        // Get the current session
+        const { data: { session } } = await supabase.auth.getSession();
+        
+        if (session?.user) {
+          // If we have a session, fetch the user profile
+          await fetchUserProfile(session.user.id);
+        } else {
+          setUser(null);
+        }
+      } catch (error) {
+        console.error('Error initializing auth:', error);
+        setUser(null);
+      } finally {
         setIsLoading(false);
+        setIsInitialized(true);
+      }
+    };
+    
+    initializeAuth();
+    
+    // Set up auth state change listener
+    const { data: { subscription } } = supabase.auth.onAuthStateChange(
+      async (event, session) => {
+        console.log('Auth state changed:', event, session?.user?.id);
+        
+        if (session?.user) {
+          await fetchUserProfile(session.user.id);
+        } else {
+          setUser(null);
+        }
+      }
+    );
+    
+    return () => {
+      subscription.unsubscribe();
+    };
+  }, []);
+  
+  // Fetch user profile data from profiles table
+  const fetchUserProfile = async (userId: string) => {
+    try {
+      const { data, error } = await supabase
+        .from('profiles')
+        .select('*')
+        .eq('id', userId)
+        .single();
+
+      if (error) {
+        console.error('Error fetching user profile:', error);
         return;
       }
 
-      setIsLoading(true);
-
-      try {
-        const { data, error } = await supabase
-          .from('profiles')
-          .select('*')
-          .eq('id', session.user.id)
-          .single();
-
-        if (error) {
-          console.error('Error fetching user profile:', error);
-          return;
-        }
-
-        if (data) {
-          setUser({
-            id: data.id,
-            name: data.name,
-            email: data.email,
-            avatar_url: data.avatar_url,
-            username: data.username,
-            bio: data.bio,
-            isTeacher: data.is_teacher || false,
-            is_onboarded: data.is_onboarded,
-            updated_at: data.updated_at
-          });
-        }
-      } catch (error) {
-        console.error('Error during user fetching:', error);
-      } finally {
-        setIsLoading(false);
+      if (data) {
+        setUser({
+          id: data.id,
+          name: data.name,
+          email: data.email,
+          avatar_url: data.avatar_url,
+          username: data.username,
+          bio: data.bio,
+          isTeacher: data.is_teacher || false,
+          is_onboarded: data.is_onboarded,
+          updated_at: data.updated_at
+        });
       }
-    };
-
-    if (session?.user) {
-      fetchUser();
-    } else {
-      setUser(null);
-      setIsLoading(false);
+    } catch (error) {
+      console.error('Error during user fetching:', error);
     }
-  }, [session]);
+  };
 
   const generateUsername = async (fullName: string): Promise<string> => {
     let baseUsername = fullName.toLowerCase().replace(/\s+/g, '');
@@ -205,6 +219,7 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
   };
 
   const updateUserData = async () => {
+    const { data: { session } } = await supabase.auth.getSession();
     if (!session?.user.id) return;
     
     setIsLoading(true);
