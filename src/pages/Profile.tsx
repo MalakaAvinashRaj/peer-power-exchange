@@ -1,3 +1,4 @@
+
 import React, { useState } from 'react';
 import Navbar from '@/components/Navbar';
 import Footer from '@/components/Footer';
@@ -8,17 +9,32 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import SkillCard from '@/components/SkillCard';
 import { popularSkills } from '@/utils/mockData';
 import { useAuth } from '@/contexts/AuthContext';
-import { Pencil, Plus } from 'lucide-react';
+import { Pencil, Plus, Share } from 'lucide-react';
 import { useUserSkills } from '@/hooks/useUserSkills';
+import { EditProfileDialog } from '@/components/EditProfileDialog';
+import { toast } from 'sonner';
 
 const Profile = () => {
   const { user } = useAuth();
   const { teachingSkills, learningSkills, isLoading } = useUserSkills(user?.id);
-  const [isEditing, setIsEditing] = useState(false);
+  const [isEditDialogOpen, setIsEditDialogOpen] = useState(false);
 
-  const handleEditProfile = () => {
-    setIsEditing(true);
-    // This would open a profile editing modal or redirect to edit page
+  const handleShareProfile = () => {
+    if (navigator.share) {
+      navigator.share({
+        title: `${user?.name}'s Profile`,
+        text: `Check out ${user?.name}'s profile on SkillShare!`,
+        url: window.location.href
+      }).then(() => {
+        console.log('Profile shared successfully');
+      }).catch((error) => {
+        console.error('Error sharing profile:', error);
+      });
+    } else {
+      // Fallback for browsers that don't support navigator.share
+      navigator.clipboard.writeText(window.location.href);
+      toast.success('Profile link copied to clipboard!');
+    }
   };
 
   const renderSkillTag = (skill: string, type: 'teaching' | 'learning') => {
@@ -42,12 +58,18 @@ const Profile = () => {
                   <AvatarFallback>{user?.name ? user.name.charAt(0) : 'U'}</AvatarFallback>
                 </Avatar>
                 <h2 className="text-xl font-bold">{user?.name || 'User Name'}</h2>
+                {user?.username && (
+                  <p className="text-muted-foreground">@{user.username}</p>
+                )}
                 <p className="text-muted-foreground mb-4">{user?.email || 'email@example.com'}</p>
-                <Button className="w-full mb-2" onClick={handleEditProfile}>
+                <Button className="w-full mb-2" onClick={() => setIsEditDialogOpen(true)}>
                   <Pencil className="mr-2 h-4 w-4" />
                   Edit Profile
                 </Button>
-                <Button variant="outline" className="w-full">Share Profile</Button>
+                <Button variant="outline" className="w-full" onClick={handleShareProfile}>
+                  <Share className="mr-2 h-4 w-4" />
+                  Share Profile
+                </Button>
               </div>
               
               <div className="mt-6">
@@ -87,6 +109,13 @@ const Profile = () => {
                   )}
                 </div>
               </div>
+              
+              {user?.bio && (
+                <div className="mt-6 text-left">
+                  <h3 className="font-medium mb-2">About</h3>
+                  <p className="text-sm">{user.bio}</p>
+                </div>
+              )}
             </CardContent>
           </Card>
           
@@ -163,6 +192,11 @@ const Profile = () => {
         </div>
       </main>
       <Footer />
+      
+      <EditProfileDialog 
+        open={isEditDialogOpen} 
+        onOpenChange={setIsEditDialogOpen} 
+      />
     </div>
   );
 };
