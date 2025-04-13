@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from 'react';
 import { Link, useNavigate, useLocation } from 'react-router-dom';
 import { Button } from '@/components/ui/button';
@@ -26,6 +25,7 @@ const Register = () => {
     agreeTerms: false
   });
   const [generatedUsername, setGeneratedUsername] = useState('');
+  const [isGeneratingUsername, setIsGeneratingUsername] = useState(false);
 
   // Redirect if already logged in
   useEffect(() => {
@@ -39,10 +39,14 @@ const Register = () => {
     const generateUsernameFromName = async () => {
       if (formData.fullName.trim().length > 0) {
         try {
+          setIsGeneratingUsername(true);
           const username = await generateUsername(formData.fullName);
+          console.log('Generated username:', username);
           setGeneratedUsername(username);
         } catch (error) {
           console.error('Error generating username:', error);
+        } finally {
+          setIsGeneratingUsername(false);
         }
       }
     };
@@ -78,6 +82,8 @@ const Register = () => {
     }
     
     try {
+      console.log('Submitting registration with username:', generatedUsername);
+      
       const response = await signUp(formData.email, formData.password, {
         name: formData.fullName,
         username: generatedUsername
@@ -145,6 +151,13 @@ const Register = () => {
                 <p className="text-xs text-muted-foreground">
                   Your unique username is automatically generated from your name
                 </p>
+              </div>
+            )}
+            
+            {isGeneratingUsername && (
+              <div className="flex items-center justify-center space-x-2 my-2">
+                <Loader2 className="h-4 w-4 animate-spin text-muted-foreground" />
+                <span className="text-sm text-muted-foreground">Generating username...</span>
               </div>
             )}
             

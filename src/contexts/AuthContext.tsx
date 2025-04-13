@@ -1,4 +1,3 @@
-
 import React, { createContext, useState, useEffect, useContext } from 'react';
 import { AuthResponse } from '@supabase/supabase-js';
 import { supabase } from '@/integrations/supabase/client';
@@ -102,17 +101,12 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
   }, [session]);
 
   const generateUsername = async (fullName: string): Promise<string> => {
-    // Convert the full name to lowercase and remove spaces
     let baseUsername = fullName.toLowerCase().replace(/\s+/g, '');
-    
-    // Remove any special characters
     baseUsername = baseUsername.replace(/[^\w]/g, '');
-    
     let username = baseUsername;
     let isUnique = false;
     let attempt = 0;
     
-    // Check if the username is unique
     while (!isUnique) {
       const { data, error } = await supabase
         .from('profiles')
@@ -126,10 +120,8 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
       }
       
       if (!data) {
-        // Username is unique
         isUnique = true;
       } else {
-        // Add a number to the username and try again
         attempt += 1;
         username = `${baseUsername}${attempt}`;
       }
@@ -151,6 +143,8 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
   const signUp = async (email: string, password: string, userData: UserFormData): Promise<AuthResponse> => {
     setIsLoading(true);
     try {
+      console.log('Creating user with username:', userData.username);
+      
       const response = await supabase.auth.signUp({
         email,
         password,
@@ -163,7 +157,9 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
       });
 
       if (response.data.user) {
-        await supabase
+        console.log('User created, inserting profile with username:', userData.username);
+        
+        const { error: profileError } = await supabase
           .from('profiles')
           .insert([
             {
@@ -174,8 +170,16 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
               updated_at: new Date().toISOString(),
             },
           ]);
+          
+        if (profileError) {
+          console.error('Error creating profile:', profileError);
+        }
       }
+      
       return response;
+    } catch (error) {
+      console.error('Error in signUp function:', error);
+      throw error;
     } finally {
       setIsLoading(false);
     }
@@ -234,7 +238,7 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
     signIn,
     signUp,
     signOut,
-    logout: signOut, // Add alias for signOut
+    logout: signOut,
     updateUserData,
     generateUsername,
     isAuthenticated: !!user,
