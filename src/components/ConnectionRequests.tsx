@@ -1,5 +1,5 @@
 
-import React, { useEffect } from 'react';
+import React, { useEffect, useState } from 'react';
 import { useConnections } from '@/hooks/useConnections';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
@@ -8,9 +8,12 @@ import { Check, X, User } from 'lucide-react';
 import { Link } from 'react-router-dom';
 import { formatDistanceToNow } from 'date-fns';
 import { useAuth } from '@/contexts/AuthContext';
+import { toast } from 'sonner';
 
 const ConnectionRequests = () => {
   const { user } = useAuth();
+  const [isFirstLoad, setIsFirstLoad] = useState(true);
+  
   const { 
     pendingConnections, 
     isLoadingPendingConnections, 
@@ -20,8 +23,21 @@ const ConnectionRequests = () => {
   } = useConnections();
 
   useEffect(() => {
-    // Initial fetch
-    getPendingConnections();
+    // Initial fetch of pending connections
+    const loadPendingConnections = async () => {
+      if (user?.id) {
+        try {
+          await getPendingConnections();
+          setIsFirstLoad(false);
+        } catch (error) {
+          console.error('Error loading pending connections:', error);
+          toast.error('Failed to load connection requests');
+          setIsFirstLoad(false);
+        }
+      }
+    };
+    
+    loadPendingConnections();
     
     // Subscribe to real-time updates
     const unsubscribe = user?.id ? subscribeToConnectionChanges(user.id) : undefined;
@@ -39,7 +55,7 @@ const ConnectionRequests = () => {
     await respondToConnectionRequest(connectionId, 'declined');
   };
 
-  if (isLoadingPendingConnections && pendingConnections.length === 0) {
+  if (isFirstLoad || (isLoadingPendingConnections && pendingConnections.length === 0)) {
     return <div className="text-center py-4">Loading connection requests...</div>;
   }
 

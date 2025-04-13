@@ -23,6 +23,7 @@ const ConnectionsList = () => {
   const { subscribeToConnectionChanges } = useConnections();
   const [connections, setConnections] = useState<Connection[]>([]);
   const [isLoading, setIsLoading] = useState(true);
+  const [isFirstLoad, setIsFirstLoad] = useState(true);
 
   const fetchConnections = async () => {
     if (!user?.id) return;
@@ -43,10 +44,13 @@ const ConnectionsList = () => {
       } else {
         setConnections([]);
       }
+      
+      setIsFirstLoad(false);
     } catch (error) {
       console.error('Error fetching connections:', error);
       toast.error('Failed to load connections');
       setConnections([]);
+      setIsFirstLoad(false);
     } finally {
       setIsLoading(false);
     }
@@ -59,22 +63,22 @@ const ConnectionsList = () => {
     // Subscribe to real-time updates
     const unsubscribe = user?.id ? subscribeToConnectionChanges(user.id) : undefined;
     
-    if (unsubscribe) {
-      // Set up interval to refresh connections when there are changes
-      const intervalId = setInterval(() => {
-        fetchConnections();
-      }, 5000);
-      
-      return () => {
-        unsubscribe();
-        clearInterval(intervalId);
-      };
-    }
+    // Create a listener to refresh connections when real-time events are received
+    const connectionChangeHandler = () => {
+      console.log('Connection state changed, refreshing connections list');
+      fetchConnections();
+    };
     
-    return () => {};
+    // Add event listener for connection changes
+    window.addEventListener('connection-change', connectionChangeHandler);
+    
+    return () => {
+      if (unsubscribe) unsubscribe();
+      window.removeEventListener('connection-change', connectionChangeHandler);
+    };
   }, [user?.id, subscribeToConnectionChanges]);
 
-  if (isLoading) {
+  if (isFirstLoad || (isLoading && connections.length === 0)) {
     return <div className="text-center py-4">Loading connections...</div>;
   }
 

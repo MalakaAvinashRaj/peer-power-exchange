@@ -3,7 +3,6 @@ import { useState, useEffect, useCallback } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
 import type { Tables } from '@/integrations/supabase/types';
-import { useDebounce } from '@/hooks/useDebounce';
 
 export type Profile = Tables<'profiles'>;
 export type PendingConnection = {
@@ -21,6 +20,9 @@ export type SearchResults = {
   usernameMatches: Profile[];
   nameMatches: Profile[];
 };
+
+// Custom event for connection changes
+const connectionChangeEvent = new CustomEvent('connection-change');
 
 export const useConnections = () => {
   const [searchResults, setSearchResults] = useState<SearchResults>({
@@ -73,13 +75,9 @@ export const useConnections = () => {
       
       const normalizedQuery = query.toLowerCase().trim();
       
-      // Fix: Get user data properly by awaiting the Promise before accessing data
-      const currentUser = supabase.auth.getUser();
-      let userId: string | undefined;
-      
-      // Use the cached profiles to filter instead of making API calls
-      currentUser.then(({ data: { user } }) => {
-        userId = user?.id;
+      // Use the cached profiles to filter locally
+      supabase.auth.getUser().then(({ data: { user } }) => {
+        const userId = user?.id;
         
         const usernameMatches = allProfiles.filter(profile => 
           profile.id !== userId && 
@@ -125,6 +123,8 @@ export const useConnections = () => {
         return false;
       }
 
+      // Emit the connection change event to update UI
+      window.dispatchEvent(connectionChangeEvent);
       toast.success('Connection request sent');
       return true;
     } catch (error) {
@@ -157,9 +157,14 @@ export const useConnections = () => {
       setIsLoadingPendingConnections(true);
       const { data: { user } } = await supabase.auth.getUser();
       
+      if (!user?.id) {
+        setPendingConnections([]);
+        return;
+      }
+      
       const response = await supabase
         .rpc('get_pending_connections', { 
-          user_id_param: user?.id 
+          user_id_param: user.id 
         });
 
       if (response.error) throw response.error;
@@ -183,6 +188,9 @@ export const useConnections = () => {
       if (response.error) throw response.error;
       
       setPendingConnections(prev => prev.filter(conn => conn.id !== connectionId));
+      
+      // Emit the connection change event to update UI
+      window.dispatchEvent(connectionChangeEvent);
       
       toast.success(`Connection request ${status}`);
       return true;
@@ -209,6 +217,8 @@ export const useConnections = () => {
       }, () => {
         console.log('Connection change detected (as sender)');
         getPendingConnections();
+        // Emit the connection change event to update UI
+        window.dispatchEvent(connectionChangeEvent);
       })
       .on('postgres_changes', {
         event: '*',
@@ -218,6 +228,8 @@ export const useConnections = () => {
       }, () => {
         console.log('Connection change detected (as receiver)');
         getPendingConnections();
+        // Emit the connection change event to update UI
+        window.dispatchEvent(connectionChangeEvent);
       })
       .subscribe();
       

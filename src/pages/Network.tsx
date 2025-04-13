@@ -12,11 +12,13 @@ const Network = () => {
   const { user } = useAuth();
 
   useEffect(() => {
-    // Enable real-time updates for the connections table
+    // Enable real-time for connections table
     const enableRealtimeForConnections = async () => {
-      // This doesn't need to be called for each page load in a real app
-      // But we're doing it here for demonstration purposes
+      if (!user?.id) return;
+      
       try {
+        // This enables the real-time functionality for the connections table
+        // We subscribe to the channel in the child components
         const { error } = await supabase
           .from('connections')
           .select('id')
@@ -32,8 +34,10 @@ const Network = () => {
       }
     };
     
-    enableRealtimeForConnections();
-  }, []);
+    if (user?.id) {
+      enableRealtimeForConnections();
+    }
+  }, [user?.id]);
 
   return (
     <div className="flex flex-col min-h-screen">
