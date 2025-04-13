@@ -36,8 +36,11 @@ const SearchDialog = ({ trigger }: SearchDialogProps) => {
   const [connectionStatuses, setConnectionStatuses] = useState<Record<string, ConnectionStatus>>({});
 
   useEffect(() => {
-    if (debouncedSearchTerm && open) {
-      searchUsers(debouncedSearchTerm);
+    if (debouncedSearchTerm.trim() && open) {
+      searchUsers(debouncedSearchTerm.trim());
+    } else {
+      // Reset search results when search term is empty
+      searchResults.length = 0;
     }
   }, [debouncedSearchTerm, searchUsers, open]);
 

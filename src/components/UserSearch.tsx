@@ -24,8 +24,11 @@ const UserSearch = () => {
   const [connectionStatuses, setConnectionStatuses] = useState<Record<string, ConnectionStatus>>({});
 
   React.useEffect(() => {
-    if (debouncedSearchTerm) {
-      searchUsers(debouncedSearchTerm);
+    if (debouncedSearchTerm.trim()) {
+      searchUsers(debouncedSearchTerm.trim());
+    } else {
+      // Reset search results when search term is empty
+      searchResults.length = 0;
     }
   }, [debouncedSearchTerm, searchUsers]);
 
