@@ -1,4 +1,3 @@
-
 import React, { useEffect, useState } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
@@ -32,7 +31,6 @@ const ConnectionsList = () => {
     try {
       setIsLoading(true);
       
-      // Use Supabase RPC function to get connections
       const { data, error } = await supabase
         .rpc('get_connections', { 
           user_id_param: user.id 
@@ -65,20 +63,16 @@ const ConnectionsList = () => {
       if (!user?.id) return;
       
       try {
-        // Initial fetch
         await fetchConnections();
         
-        // Subscribe to real-time updates
         unsubscribe = subscribeToConnectionChanges(user.id);
         setConnectionSubscribed(true);
         
-        // Create a listener to refresh connections when real-time events are received
         const connectionChangeHandler = () => {
           console.log('Connection state changed, refreshing connections list');
           fetchConnections();
         };
         
-        // Add event listener for connection changes
         window.addEventListener('connection-change', connectionChangeHandler);
         
         return () => {

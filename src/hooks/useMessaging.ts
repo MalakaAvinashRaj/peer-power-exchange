@@ -114,16 +114,53 @@ export const useMessaging = (otherUserId?: string) => {
     }
   };
 
-  // If otherUserId is provided, fetch messages on mount
+  // Set up realtime subscription
   useEffect(() => {
-    const fetchUserMessages = async () => {
+    if (!otherUserId) return;
+
+    const setupRealtime = async () => {
       const { data: { user } } = await supabase.auth.getUser();
-      if (user?.id && otherUserId) {
-        await fetchMessages(user.id, otherUserId);
+      if (!user?.id) return;
+
+      // Initial fetch
+      await fetchMessages(user.id, otherUserId);
+
+      // Subscribe to realtime updates
+      const channel = supabase
+        .channel('messages-changes')
+        .on('postgres_changes', {
+          event: '*',
+          schema: 'public',
+          table: 'messages',
+          filter: `sender_id=eq.${otherUserId},receiver_id=eq.${user.id}`,
+        }, async () => {
+          console.log('New message received');
+          await fetchMessages(user.id, otherUserId);
+        })
+        .on('postgres_changes', {
+          event: '*',
+          schema: 'public',
+          table: 'messages',
+          filter: `sender_id=eq.${user.id},receiver_id=eq.${otherUserId}`,
+        }, async () => {
+          console.log('Message update from self');
+          await fetchMessages(user.id, otherUserId);
+        })
+        .subscribe();
+
+      return () => {
+        supabase.removeChannel(channel);
+      };
+    };
+
+    const cleanup = setupRealtime();
+    return () => {
+      if (cleanup) {
+        cleanup.then(unsub => {
+          if (unsub) unsub();
+        });
       }
     };
-    
-    fetchUserMessages();
   }, [otherUserId]);
 
   return {

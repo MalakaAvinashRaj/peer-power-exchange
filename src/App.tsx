@@ -1,93 +1,156 @@
+import React, { useEffect, useState } from 'react';
+import {
+  createBrowserRouter,
+  RouterProvider,
+  useNavigate,
+} from 'react-router-dom';
+import { useAuth } from '@/contexts/AuthContext';
+import Login from '@/pages/Login';
+import Register from '@/pages/Register';
+import Home from '@/pages/Home';
+import Profile from '@/pages/Profile';
+import EditProfile from '@/pages/EditProfile';
+import Explore from '@/pages/Explore';
+import HowItWorks from '@/pages/HowItWorks';
+import About from '@/pages/About';
+import Dashboard from '@/pages/Dashboard';
+import Settings from '@/pages/Settings';
+import Network from '@/pages/Network';
+import Sessions from '@/pages/Sessions';
+import Notifications from '@/pages/Notifications';
+import { Toaster } from 'sonner';
+import Messages from './pages/Messages';
 
-import React from 'react'
-import { BrowserRouter as Router, Routes, Route, Navigate } from 'react-router-dom'
-import './App.css'
-import Index from './pages/Index'
-import About from './pages/About'
-import Dashboard from './pages/Dashboard'
-import Login from './pages/Auth/Login'
-import Register from './pages/Auth/Register'
-import NotFound from './pages/NotFound'
-import Profile from './pages/Profile'
-import Network from './pages/Network'
-import Sessions from './pages/Sessions'
-import Explore from './pages/Explore'
-import Messages from './pages/Messages'
-import UserSkillsSelection from './pages/UserSkillsSelection'
-import HowItWorks from './pages/HowItWorks'
-import Settings from './pages/Settings'
-import Notifications from './pages/Notifications'
-import { AuthProvider, useAuth } from './contexts/AuthContext'
-import { Toaster } from 'sonner'
-
-// Protected route component
 const ProtectedRoute = ({ children }: { children: React.ReactNode }) => {
   const { isAuthenticated, isLoading } = useAuth();
-  
-  if (isLoading) {
-    return <div className="flex justify-center items-center min-h-screen">Loading...</div>;
-  }
-  
-  if (!isAuthenticated) {
-    return <Navigate to="/login" />;
-  }
-  
-  return <>{children}</>;
-};
+  const navigate = useNavigate();
 
-// Auth routes - redirect to dashboard if already logged in
-const AuthRoute = ({ children }: { children: React.ReactNode }) => {
-  const { isAuthenticated, isLoading } = useAuth();
-  
-  if (isLoading) {
-    return <div className="flex justify-center items-center min-h-screen">Loading...</div>;
-  }
-  
-  if (isAuthenticated) {
-    return <Navigate to="/dashboard" />;
-  }
-  
-  return <>{children}</>;
-};
+  useEffect(() => {
+    if (!isAuthenticated && !isLoading) {
+      navigate('/login');
+    }
+  }, [isAuthenticated, isLoading, navigate]);
 
-// AppRoutes component to use the auth context
-const AppRoutes = () => {
-  return (
-    <Routes>
-      <Route path="/" element={<Index />} />
-      <Route path="/about" element={<About />} />
-      <Route path="/how-it-works" element={<HowItWorks />} />
-      <Route path="/explore" element={<Explore />} />
-      
-      {/* Auth routes */}
-      <Route path="/login" element={<AuthRoute><Login /></AuthRoute>} />
-      <Route path="/register" element={<AuthRoute><Register /></AuthRoute>} />
-      
-      {/* Protected routes */}
-      <Route path="/dashboard" element={<ProtectedRoute><Dashboard /></ProtectedRoute>} />
-      <Route path="/profile" element={<ProtectedRoute><Profile /></ProtectedRoute>} />
-      <Route path="/network" element={<ProtectedRoute><Network /></ProtectedRoute>} />
-      <Route path="/sessions" element={<ProtectedRoute><Sessions /></ProtectedRoute>} />
-      <Route path="/messages" element={<ProtectedRoute><Messages /></ProtectedRoute>} />
-      <Route path="/skills-selection" element={<ProtectedRoute><UserSkillsSelection /></ProtectedRoute>} />
-      <Route path="/settings" element={<ProtectedRoute><Settings /></ProtectedRoute>} />
-      <Route path="/notifications" element={<ProtectedRoute><Notifications /></ProtectedRoute>} />
-      
-      {/* Not found */}
-      <Route path="*" element={<NotFound />} />
-    </Routes>
-  );
+  return isAuthenticated ? <>{children}</> : null;
 };
 
 function App() {
+  const { initializeAuth } = useAuth();
+  const [hydrated, setHydrated] = useState(false);
+
+  useEffect(() => {
+    initializeAuth().then(() => setHydrated(true));
+  }, [initializeAuth]);
+
+  if (!hydrated) {
+    return <div>Loading...</div>;
+  }
+
   return (
-    <AuthProvider>
-      <Router>
-        <AppRoutes />
-      </Router>
+    <div>
+      <RouterProvider
+        router={createBrowserRouter([
+          {
+            path: '/',
+            element: <Home />,
+          },
+          {
+            path: '/login',
+            element: <Login />,
+          },
+          {
+            path: '/register',
+            element: <Register />,
+          },
+          {
+            path: '/profile/:id',
+            element: (
+              <ProtectedRoute>
+                <Profile />
+              </ProtectedRoute>
+            ),
+          },
+          {
+            path: '/profile',
+            element: (
+              <ProtectedRoute>
+                <Profile />
+              </ProtectedRoute>
+            ),
+          },
+          {
+            path: '/edit-profile',
+            element: (
+              <ProtectedRoute>
+                <EditProfile />
+              </ProtectedRoute>
+            ),
+          },
+          {
+            path: '/explore',
+            element: <Explore />,
+          },
+          {
+            path: '/how-it-works',
+            element: <HowItWorks />,
+          },
+          {
+            path: '/about',
+            element: <About />,
+          },
+          {
+            path: '/dashboard',
+            element: (
+              <ProtectedRoute>
+                <Dashboard />
+              </ProtectedRoute>
+            ),
+          },
+          {
+            path: '/settings',
+            element: (
+              <ProtectedRoute>
+                <Settings />
+              </ProtectedRoute>
+            ),
+          },
+          {
+            path: '/network',
+            element: (
+              <ProtectedRoute>
+                <Network />
+              </ProtectedRoute>
+            ),
+          },
+          {
+            path: '/sessions',
+            element: (
+              <ProtectedRoute>
+                <Sessions />
+              </ProtectedRoute>
+            ),
+          },
+          {
+            path: '/notifications',
+            element: (
+              <ProtectedRoute>
+                <Notifications />
+              </ProtectedRoute>
+            ),
+          },
+          {
+            path: '/messages',
+            element: (
+              <ProtectedRoute>
+                <Messages />
+              </ProtectedRoute>
+            ),
+          },
+        ])}
+      />
       <Toaster position="top-right" />
-    </AuthProvider>
-  )
+    </div>
+  );
 }
 
-export default App
+export default App;

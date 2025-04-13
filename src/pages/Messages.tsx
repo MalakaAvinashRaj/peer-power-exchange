@@ -7,20 +7,14 @@ import { Card, CardContent } from '@/components/ui/card';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
-import { Search, Send, User } from 'lucide-react';
-import { useMessaging } from '@/hooks/useMessaging';
+import { Textarea } from '@/components/ui/textarea';
+import { Search, Send, User, MessageSquare } from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client';
 import { format } from 'date-fns';
 import { toast } from 'sonner';
-
-type Conversation = {
-  id: string;
-  name: string;
-  avatar: string | null;
-  lastMessage: string;
-  timestamp: string;
-  unread: boolean;
-};
+import { Link } from 'react-router-dom';
+import { useConnections } from '@/hooks/useConnections';
+import { useMessaging } from '@/hooks/useMessaging';
 
 const Messages = () => {
   const { user } = useAuth();
@@ -28,9 +22,21 @@ const Messages = () => {
   const [isLoadingConnections, setIsLoadingConnections] = useState(true);
   const [selectedUserId, setSelectedUserId] = useState<string | null>(null);
   const [newMessage, setNewMessage] = useState('');
-  const [conversations, setConversations] = useState<Conversation[]>([]);
-  const { messages, isLoading, canSendMessages, sendMessage } = useMessaging(selectedUserId || undefined);
   const messagesEndRef = useRef<HTMLDivElement>(null);
+  
+  const { messages, isLoading, canSendMessages, sendMessage } = useMessaging(selectedUserId || undefined);
+  
+  // Type for conversation
+  type Conversation = {
+    id: string;
+    name: string;
+    avatar: string | null;
+    lastMessage: string;
+    timestamp: string;
+    unread: boolean;
+  };
+  
+  const [conversations, setConversations] = useState<Conversation[]>([]);
   
   // Load connections
   useEffect(() => {
@@ -39,7 +45,6 @@ const Messages = () => {
       
       try {
         setIsLoadingConnections(true);
-        // Using raw SQL query through .rpc instead of .from
         const { data, error } = await supabase
           .from('connections')
           .select(`
@@ -162,7 +167,7 @@ const Messages = () => {
                   <div className="flex flex-col justify-center items-center h-full">
                     <p className="text-muted-foreground mb-2">No connections yet</p>
                     <Button variant="outline" size="sm" asChild>
-                      <a href="/explore">Find Users</a>
+                      <a href="/network">Find Connections</a>
                     </Button>
                   </div>
                 )}
