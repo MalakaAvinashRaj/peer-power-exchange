@@ -1,3 +1,4 @@
+
 import React, { useEffect, useState } from 'react';
 import {
   createBrowserRouter,
@@ -5,11 +6,11 @@ import {
   useNavigate,
 } from 'react-router-dom';
 import { useAuth } from '@/contexts/AuthContext';
-import Login from '@/pages/Login';
-import Register from '@/pages/Register';
-import Home from '@/pages/Home';
+import Login from './pages/Login';
+import Register from './pages/Register';
+import Home from './pages/Home';
 import Profile from '@/pages/Profile';
-import EditProfile from '@/pages/EditProfile';
+import EditProfile from './pages/EditProfile';
 import Explore from '@/pages/Explore';
 import HowItWorks from '@/pages/HowItWorks';
 import About from '@/pages/About';
@@ -35,12 +36,15 @@ const ProtectedRoute = ({ children }: { children: React.ReactNode }) => {
 };
 
 function App() {
-  const { initializeAuth } = useAuth();
+  const { user, isLoading } = useAuth();
   const [hydrated, setHydrated] = useState(false);
 
   useEffect(() => {
-    initializeAuth().then(() => setHydrated(true));
-  }, [initializeAuth]);
+    // Set hydrated to true once authentication state is loaded
+    if (!isLoading) {
+      setHydrated(true);
+    }
+  }, [isLoading]);
 
   if (!hydrated) {
     return <div>Loading...</div>;
