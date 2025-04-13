@@ -1,3 +1,4 @@
+
 import React, { useEffect, useState } from 'react';
 import {
   createBrowserRouter,
@@ -26,34 +27,27 @@ const ProtectedRoute = ({ children }: { children: React.ReactNode }) => {
   const navigate = useNavigate();
 
   useEffect(() => {
-    if (!isLoading && !isAuthenticated) {
+    if (!isAuthenticated && !isLoading) {
       navigate('/login');
     }
   }, [isAuthenticated, isLoading, navigate]);
-
-  if (isLoading) {
-    return <div>Loading...</div>;
-  }
 
   return isAuthenticated ? <>{children}</> : null;
 };
 
 function App() {
-  const { isLoading } = useAuth();
+  const { user, isLoading } = useAuth();
   const [hydrated, setHydrated] = useState(false);
 
   useEffect(() => {
+    // Set hydrated to true once authentication state is loaded
     if (!isLoading) {
       setHydrated(true);
     }
   }, [isLoading]);
 
   if (!hydrated) {
-    return (
-      <div className="h-screen w-screen flex items-center justify-center">
-        <div className="animate-pulse text-lg">Loading your session...</div>
-      </div>
-    );
+    return <div>Loading...</div>;
   }
 
   return (
