@@ -1,5 +1,5 @@
 
-import React from 'react';
+import React, { useState } from 'react';
 import { Link } from 'react-router-dom';
 import Navbar from '@/components/Navbar';
 import Footer from '@/components/Footer';
@@ -10,17 +10,29 @@ import { Label } from '@/components/ui/label';
 import { useAuth } from '@/contexts/AuthContext';
 
 const Register = () => {
-  const { signUp } = useAuth();
+  const { signUp, generateUsername } = useAuth();
+  const [isSubmitting, setIsSubmitting] = useState(false);
   
   const handleSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
-    const formData = new FormData(e.currentTarget);
-    const name = formData.get('name') as string;
-    const email = formData.get('email') as string;
-    const password = formData.get('password') as string;
+    setIsSubmitting(true);
     
-    if (signUp) {
-      await signUp(email, password, { name });
+    try {
+      const formData = new FormData(e.currentTarget);
+      const name = formData.get('name') as string;
+      const email = formData.get('email') as string;
+      const password = formData.get('password') as string;
+      
+      // Generate a username based on the name
+      const username = await generateUsername(name);
+      
+      if (signUp) {
+        await signUp(email, password, { name, username });
+      }
+    } catch (error) {
+      console.error('Registration error:', error);
+    } finally {
+      setIsSubmitting(false);
     }
   };
 
@@ -47,7 +59,9 @@ const Register = () => {
                 <Label htmlFor="password">Password</Label>
                 <Input id="password" name="password" type="password" required />
               </div>
-              <Button type="submit" className="w-full">Register</Button>
+              <Button type="submit" className="w-full" disabled={isSubmitting}>
+                {isSubmitting ? 'Registering...' : 'Register'}
+              </Button>
             </form>
           </CardContent>
           <CardFooter className="flex justify-center">

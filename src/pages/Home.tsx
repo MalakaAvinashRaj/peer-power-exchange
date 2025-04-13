@@ -9,6 +9,7 @@ import TestimonialsSection from '@/components/TestimonialsSection';
 import StatsSection from '@/components/StatsSection';
 import SkillCarousel from '@/components/SkillCarousel';
 import CategorySection from '@/components/CategorySection';
+import { popularSkills, recentSkills, trendingSkills } from '@/utils/mockData';
 
 const Home = () => {
   return (
@@ -19,7 +20,14 @@ const Home = () => {
         <StatsSection />
         <FeaturesSection />
         <CategorySection />
-        <SkillCarousel />
+        <section className="py-16">
+          <div className="container space-y-16">
+            <SkillCarousel 
+              title="Popular Skills" 
+              skills={popularSkills}
+            />
+          </div>
+        </section>
         <TestimonialsSection />
         <CTASection />
       </main>
