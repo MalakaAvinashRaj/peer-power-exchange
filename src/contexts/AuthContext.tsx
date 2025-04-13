@@ -42,6 +42,15 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
       }
     };
     
+    // Add a timeout to prevent infinite loading
+    const timeoutId = setTimeout(() => {
+      if (isLoading) {
+        console.log('Auth loading timeout reached, forcing initialization');
+        setIsLoading(false);
+        setIsInitialized(true);
+      }
+    }, 5000); // 5 second timeout
+    
     initializeAuth();
     
     // Set up auth state change listener
@@ -55,11 +64,15 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
         } else {
           setUser(null);
         }
+        
+        // Ensure loading is set to false when auth state changes
+        setIsLoading(false);
       }
     );
     
     return () => {
       subscription.unsubscribe();
+      clearTimeout(timeoutId);
     };
   }, [fetchUserProfile]);
   
