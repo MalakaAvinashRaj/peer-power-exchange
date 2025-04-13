@@ -13,9 +13,9 @@ import { Search, User, UserPlus, Clock, Check, X } from 'lucide-react';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { Card, CardContent } from '@/components/ui/card';
 import { useConnections, type ConnectionStatus } from '@/hooks/useConnections';
-import { useDebounce } from '@/hooks/useDebounce';
 import { useAuth } from '@/contexts/AuthContext';
 import { Link } from 'react-router-dom';
+import { Separator } from '@/components/ui/separator';
 
 type SearchDialogProps = {
   trigger?: React.ReactNode;
@@ -25,7 +25,6 @@ const SearchDialog = ({ trigger }: SearchDialogProps) => {
   const { user } = useAuth();
   const [open, setOpen] = useState(false);
   const [searchTerm, setSearchTerm] = useState('');
-  const debouncedSearchTerm = useDebounce(searchTerm, 500);
   const { 
     searchResults, 
     isSearching, 
@@ -35,22 +34,24 @@ const SearchDialog = ({ trigger }: SearchDialogProps) => {
   } = useConnections();
   const [connectionStatuses, setConnectionStatuses] = useState<Record<string, ConnectionStatus>>({});
 
+  // Run search on every keystroke
   useEffect(() => {
-    if (debouncedSearchTerm.trim() && open) {
-      searchUsers(debouncedSearchTerm.trim());
-    } else {
-      // Reset search results when search term is empty
-      searchResults.length = 0;
+    if (open) {
+      searchUsers(searchTerm);
     }
-  }, [debouncedSearchTerm, searchUsers, open]);
+  }, [searchTerm, searchUsers, open]);
 
+  // Get connection status for each search result
   useEffect(() => {
-    // Get connection status for each search result
     const fetchConnectionStatuses = async () => {
       const statuses: Record<string, ConnectionStatus> = {};
+      const allResults = [
+        ...searchResults.usernameMatches, 
+        ...searchResults.nameMatches
+      ];
       
-      for (const profile of searchResults) {
-        if (profile.id !== user?.id) { // Skip current user
+      for (const profile of allResults) {
+        if (profile.id !== user?.id) {
           statuses[profile.id] = await getConnectionStatus(profile.id);
         }
       }
@@ -58,7 +59,7 @@ const SearchDialog = ({ trigger }: SearchDialogProps) => {
       setConnectionStatuses(statuses);
     };
     
-    if (searchResults.length > 0) {
+    if (searchResults.usernameMatches.length > 0 || searchResults.nameMatches.length > 0) {
       fetchConnectionStatuses();
     }
   }, [searchResults, getConnectionStatus, user?.id]);
@@ -113,6 +114,39 @@ const SearchDialog = ({ trigger }: SearchDialogProps) => {
     }
   };
 
+  const renderUserCard = (profile: any) => (
+    <Card key={profile.id} className="overflow-hidden">
+      <CardContent className="p-3">
+        <div className="flex items-center justify-between">
+          <div className="flex items-center space-x-3">
+            <Avatar>
+              <AvatarImage src={profile.avatar_url || ''} />
+              <AvatarFallback>
+                {profile.name ? profile.name.charAt(0) : <User size={16} />}
+              </AvatarFallback>
+            </Avatar>
+            <div>
+              <Link 
+                to={`/profile/${profile.id}`} 
+                className="font-medium hover:underline"
+                onClick={() => setOpen(false)}
+              >
+                {profile.name}
+              </Link>
+              {profile.username && (
+                <div className="text-sm text-muted-foreground">
+                  @{profile.username}
+                </div>
+              )}
+            </div>
+          </div>
+          
+          {renderConnectionButton(profile.id)}
+        </div>
+      </CardContent>
+    </Card>
+  );
+
   return (
     <Dialog open={open} onOpenChange={setOpen}>
       <DialogTrigger asChild>
@@ -139,45 +173,34 @@ const SearchDialog = ({ trigger }: SearchDialogProps) => {
 
         {isSearching ? (
           <div className="text-center py-4">Searching...</div>
-        ) : searchResults.length > 0 ? (
-          <div className="space-y-2 max-h-[40vh] overflow-y-auto">
-            {searchResults.map(profile => (
-              profile.id !== user?.id && (
-                <Card key={profile.id} className="overflow-hidden">
-                  <CardContent className="p-3">
-                    <div className="flex items-center justify-between">
-                      <div className="flex items-center space-x-3">
-                        <Avatar>
-                          <AvatarImage src={profile.avatar_url || ''} />
-                          <AvatarFallback>
-                            {profile.name ? profile.name.charAt(0) : <User size={16} />}
-                          </AvatarFallback>
-                        </Avatar>
-                        <div>
-                          <Link 
-                            to={`/profile/${profile.id}`} 
-                            className="font-medium hover:underline"
-                            onClick={() => setOpen(false)}
-                          >
-                            {profile.name}
-                          </Link>
-                          {profile.username && (
-                            <div className="text-sm text-muted-foreground">
-                              @{profile.username}
-                            </div>
-                          )}
-                        </div>
-                      </div>
-                      
-                      {renderConnectionButton(profile.id)}
-                    </div>
-                  </CardContent>
-                </Card>
-              )
-            ))}
+        ) : (
+          <div className="space-y-4 max-h-[50vh] overflow-y-auto">
+            {searchResults.usernameMatches.length > 0 && (
+              <div className="space-y-2">
+                <h3 className="text-sm font-medium text-muted-foreground">Username matches</h3>
+                {searchResults.usernameMatches
+                  .filter(profile => profile.id !== user?.id)
+                  .map(profile => renderUserCard(profile))
+                }
+              </div>
+            )}
+            
+            {searchResults.nameMatches.length > 0 && (
+              <div className="space-y-2">
+                <h3 className="text-sm font-medium text-muted-foreground">Name matches</h3>
+                {searchResults.nameMatches
+                  .filter(profile => profile.id !== user?.id)
+                  .map(profile => renderUserCard(profile))
+                }
+              </div>
+            )}
+
+            {searchTerm && 
+             searchResults.usernameMatches.length === 0 && 
+             searchResults.nameMatches.length === 0 && (
+              <div className="text-center py-4 text-muted-foreground">No users found</div>
+            )}
           </div>
-        ) : searchTerm && (
-          <div className="text-center py-4 text-muted-foreground">No users found</div>
         )}
       </DialogContent>
     </Dialog>

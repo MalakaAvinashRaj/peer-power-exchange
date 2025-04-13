@@ -16,25 +16,54 @@ export type PendingConnection = {
 
 export type ConnectionStatus = 'none' | 'pending' | 'accepted' | 'declined';
 
+export type SearchResults = {
+  usernameMatches: Profile[];
+  nameMatches: Profile[];
+};
+
 export const useConnections = () => {
-  const [searchResults, setSearchResults] = useState<Profile[]>([]);
+  const [searchResults, setSearchResults] = useState<SearchResults>({
+    usernameMatches: [],
+    nameMatches: []
+  });
   const [isSearching, setIsSearching] = useState(false);
   const [pendingConnections, setPendingConnections] = useState<PendingConnection[]>([]);
   const [isLoadingPendingConnections, setIsLoadingPendingConnections] = useState(false);
 
   const searchUsers = async (query: string) => {
     if (!query.trim()) {
-      setSearchResults([]);
+      setSearchResults({
+        usernameMatches: [],
+        nameMatches: []
+      });
       return;
     }
 
     try {
       setIsSearching(true);
-      const response = await supabase
-        .rpc('search_users', { search_query: query });
+      
+      // Search for username matches
+      const usernameResponse = await supabase
+        .from('profiles')
+        .select('*')
+        .ilike('username', `%${query}%`)
+        .limit(5);
 
-      if (response.error) throw response.error;
-      setSearchResults(response.data || []);
+      // Search for name matches
+      const nameResponse = await supabase
+        .from('profiles')
+        .select('*')
+        .ilike('name', `%${query}%`)
+        .not('id', 'in', usernameResponse.data?.map(user => user.id) || [])
+        .limit(5);
+
+      if (usernameResponse.error) throw usernameResponse.error;
+      if (nameResponse.error) throw nameResponse.error;
+
+      setSearchResults({
+        usernameMatches: usernameResponse.data || [],
+        nameMatches: nameResponse.data || []
+      });
     } catch (error) {
       console.error('Error searching users:', error);
       toast.error('Failed to search users');
