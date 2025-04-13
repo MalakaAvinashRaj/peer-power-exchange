@@ -1,6 +1,6 @@
 
 import React, { useState } from 'react';
-import { Link } from 'react-router-dom';
+import { Link, useNavigate } from 'react-router-dom';
 import Navbar from '@/components/Navbar';
 import Footer from '@/components/Footer';
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from '@/components/ui/card';
@@ -8,10 +8,29 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { useAuth } from '@/contexts/AuthContext';
+import { toast } from 'sonner';
 
 const Register = () => {
+  const navigate = useNavigate();
   const { signUp, generateUsername } = useAuth();
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [generatedUsername, setGeneratedUsername] = useState('');
+  const [name, setName] = useState('');
+  
+  // Generate username when name changes
+  const handleNameChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const newName = e.target.value;
+    setName(newName);
+    
+    if (newName.length > 2) {
+      try {
+        const username = await generateUsername(newName);
+        setGeneratedUsername(username);
+      } catch (error) {
+        console.error('Error generating username:', error);
+      }
+    }
+  };
   
   const handleSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
@@ -23,14 +42,27 @@ const Register = () => {
       const email = formData.get('email') as string;
       const password = formData.get('password') as string;
       
-      // Generate a username based on the name
-      const username = await generateUsername(name);
+      // Use the pre-generated username or generate a new one if not available
+      let username = generatedUsername;
+      if (!username) {
+        username = await generateUsername(name);
+      }
       
       if (signUp) {
-        await signUp(email, password, { name, username });
+        const { error } = await signUp(email, password, { name, username });
+        
+        if (error) {
+          toast.error(error.message);
+        } else {
+          toast.success('Registration successful! Please check your email to verify your account.', {
+            duration: 5000,
+          });
+          navigate('/login');
+        }
       }
     } catch (error) {
       console.error('Registration error:', error);
+      toast.error('Registration failed. Please try again.');
     } finally {
       setIsSubmitting(false);
     }
@@ -49,8 +81,31 @@ const Register = () => {
             <form onSubmit={handleSubmit} className="space-y-4">
               <div className="space-y-2">
                 <Label htmlFor="name">Name</Label>
-                <Input id="name" name="name" placeholder="Your name" required />
+                <Input 
+                  id="name" 
+                  name="name" 
+                  value={name}
+                  onChange={handleNameChange}
+                  placeholder="Your name" 
+                  required 
+                />
               </div>
+              
+              {generatedUsername && (
+                <div className="space-y-2">
+                  <Label htmlFor="username">Username</Label>
+                  <Input 
+                    id="username" 
+                    value={generatedUsername} 
+                    readOnly 
+                    className="bg-muted" 
+                  />
+                  <p className="text-xs text-muted-foreground">
+                    This will be your unique username in the system
+                  </p>
+                </div>
+              )}
+              
               <div className="space-y-2">
                 <Label htmlFor="email">Email</Label>
                 <Input id="email" name="email" type="email" placeholder="name@example.com" required />

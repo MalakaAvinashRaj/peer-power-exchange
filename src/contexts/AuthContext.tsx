@@ -167,7 +167,7 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
         console.log('User created with id:', response.data.user.id);
         console.log('Inserting profile with username:', userData.username);
         
-        // Then create the profile in the profiles table
+        // Then create the profile in the profiles table with the username
         const { error: profileError } = await supabase
           .from('profiles')
           .insert([
@@ -175,7 +175,7 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
               id: response.data.user.id,
               email: response.data.user.email,
               name: userData.name,
-              username: userData.username,
+              username: userData.username, // Make sure username is saved
               updated_at: new Date().toISOString(),
             },
           ]);
