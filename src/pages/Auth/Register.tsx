@@ -27,14 +27,12 @@ const Register = () => {
   const [generatedUsername, setGeneratedUsername] = useState('');
   const [isGeneratingUsername, setIsGeneratingUsername] = useState(false);
 
-  // Redirect if already logged in
   useEffect(() => {
     if (isAuthenticated) {
       navigate('/dashboard');
     }
   }, [isAuthenticated, navigate]);
 
-  // Generate username when full name changes
   useEffect(() => {
     const generateUsernameFromName = async () => {
       if (formData.fullName.trim().length > 0) {

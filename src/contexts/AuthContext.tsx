@@ -1,3 +1,4 @@
+
 import React, { createContext, useState, useEffect, useContext } from 'react';
 import { AuthResponse } from '@supabase/supabase-js';
 import { supabase } from '@/integrations/supabase/client';
@@ -25,7 +26,7 @@ interface AuthContextType {
   signIn: (email: string, password: string) => Promise<AuthResponse>;
   signUp: (email: string, password: string, userData: UserFormData) => Promise<AuthResponse>;
   signOut: () => Promise<void>;
-  logout: () => Promise<void>; // Add alias for signOut
+  logout: () => Promise<void>; 
   updateUserData: () => Promise<void>;
   generateUsername: (fullName: string) => Promise<string>;
   isAuthenticated: boolean;
@@ -145,6 +146,7 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
     try {
       console.log('Creating user with username:', userData.username);
       
+      // First update the auth.users table with user metadata including the username
       const response = await supabase.auth.signUp({
         email,
         password,
@@ -156,9 +158,16 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
         },
       });
 
+      if (response.error) {
+        console.error('Error creating auth user:', response.error);
+        return response;
+      }
+
       if (response.data.user) {
-        console.log('User created, inserting profile with username:', userData.username);
+        console.log('User created with id:', response.data.user.id);
+        console.log('Inserting profile with username:', userData.username);
         
+        // Then create the profile in the profiles table
         const { error: profileError } = await supabase
           .from('profiles')
           .insert([
