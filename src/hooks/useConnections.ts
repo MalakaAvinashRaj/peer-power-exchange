@@ -8,46 +8,29 @@ import { ConnectionStatus, PendingConnection, Profile, SearchResults } from '@/t
 export type { ConnectionStatus, PendingConnection, Profile, SearchResults };
 
 export const useConnections = () => {
-  const { 
-    searchResults, 
-    isSearching, 
-    searchUsers, 
-    fetchAllUsers,
-    isInitialFetchDone
-  } = useConnectionSearch();
-
-  const {
-    pendingConnections,
-    isLoadingPendingConnections,
-    hasPendingRequests,
-    getPendingConnections,
-    respondToConnectionRequest
-  } = useConnectionRequests();
-
-  const {
-    sendConnectionRequest,
-    getConnectionStatus,
-    subscribeToConnectionChanges
-  } = useConnectionActions();
+  // Use these hooks directly inside the function body, not in conditionals
+  const searchHook = useConnectionSearch();
+  const requestsHook = useConnectionRequests();
+  const actionsHook = useConnectionActions();
 
   return {
     // From useConnectionSearch
-    searchResults,
-    isSearching,
-    searchUsers,
-    fetchAllUsers,
-    isInitialFetchDone,
+    searchResults: searchHook.searchResults,
+    isSearching: searchHook.isSearching,
+    searchUsers: searchHook.searchUsers,
+    fetchAllUsers: searchHook.fetchAllUsers,
+    isInitialFetchDone: searchHook.isInitialFetchDone,
     
     // From useConnectionRequests
-    pendingConnections,
-    isLoadingPendingConnections,
-    hasPendingRequests,
-    getPendingConnections,
-    respondToConnectionRequest,
+    pendingConnections: requestsHook.pendingConnections,
+    isLoadingPendingConnections: requestsHook.isLoadingPendingConnections,
+    hasPendingRequests: requestsHook.hasPendingRequests,
+    getPendingConnections: requestsHook.getPendingConnections,
+    respondToConnectionRequest: requestsHook.respondToConnectionRequest,
     
     // From useConnectionActions
-    sendConnectionRequest,
-    getConnectionStatus,
-    subscribeToConnectionChanges
+    sendConnectionRequest: actionsHook.sendConnectionRequest,
+    getConnectionStatus: actionsHook.getConnectionStatus,
+    subscribeToConnectionChanges: actionsHook.subscribeToConnectionChanges
   };
 };

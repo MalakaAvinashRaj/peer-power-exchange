@@ -2,9 +2,10 @@
 import { useState, useCallback } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
-import { PendingConnection, ConnectionStatus } from '@/types/connections';
+import { PendingConnection } from '@/types/connections';
 
 export const useConnectionRequests = () => {
+  // Initialize state values properly
   const [pendingConnections, setPendingConnections] = useState<PendingConnection[]>([]);
   const [isLoadingPendingConnections, setIsLoadingPendingConnections] = useState(false);
   const [hasPendingRequests, setHasPendingRequests] = useState(false);

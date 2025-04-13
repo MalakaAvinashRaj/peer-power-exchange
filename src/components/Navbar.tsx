@@ -20,57 +20,66 @@ import {
 import { useIsMobile } from '@/hooks/use-mobile';
 import { useAuth } from '@/contexts/AuthContext';
 import { useConnections } from '@/hooks/useConnections';
-import { useMessaging } from '@/hooks/useMessaging';
 import SearchDialog from './SearchDialog';
 
 const Navbar = () => {
   const isMobile = useIsMobile();
   const { user, isAuthenticated, logout } = useAuth();
-  const { hasPendingRequests, getPendingConnections, subscribeToConnectionChanges } = useConnections();
   const [hasUnreadMessages, setHasUnreadMessages] = useState(false);
   const [hasUnreadNotifications, setHasUnreadNotifications] = useState(false);
+  const [hasPendingRequests, setHasPendingRequests] = useState(false);
+
+  // Get connection utilities only if authenticated
+  const connections = isAuthenticated ? useConnections() : null;
 
   // Initialize connection tracking for the current user
   useEffect(() => {
     let unsubscribe: (() => void) | undefined;
     
-    if (user?.id) {
+    if (user?.id && connections) {
       // Initial fetch of pending connections
-      getPendingConnections();
+      connections.getPendingConnections();
       
       // Subscribe to real-time updates
-      unsubscribe = subscribeToConnectionChanges(user.id);
+      unsubscribe = connections.subscribeToConnectionChanges(user.id);
       
       // Listen for connection change events
       const handleConnectionChange = () => {
-        getPendingConnections();
+        connections.getPendingConnections();
       };
       
       window.addEventListener('connection-change', handleConnectionChange);
       
+      // Update local state from connections
+      const checkPendingRequests = () => {
+        setHasPendingRequests(connections.hasPendingRequests);
+      };
+      
       // For demo purposes, let's simulate some unread messages and notifications
-      // This would be replaced with actual checks in a full implementation
       const checkUnreadMessages = () => {
-        // In a real app, this would be from the database
         setHasUnreadMessages(Math.random() > 0.5);
       };
       
       const checkUnreadNotifications = () => {
-        // In a real app, this would be from the database
         setHasUnreadNotifications(Math.random() > 0.5);
       };
       
+      checkPendingRequests();
       checkUnreadMessages();
       checkUnreadNotifications();
+      
+      // Set up interval to check for updates
+      const intervalId = setInterval(checkPendingRequests, 5000);
       
       return () => {
         window.removeEventListener('connection-change', handleConnectionChange);
         if (unsubscribe) {
           unsubscribe();
         }
+        clearInterval(intervalId);
       };
     }
-  }, [user?.id, getPendingConnections, subscribeToConnectionChanges]);
+  }, [user?.id, connections]);
 
   return (
     <nav className="border-b sticky top-0 bg-white/80 backdrop-blur-md z-50">
