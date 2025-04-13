@@ -1,8 +1,8 @@
-
-import { useState } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
 import type { Tables } from '@/integrations/supabase/types';
+import { useDebounce } from '@/hooks/useDebounce';
 
 export type Profile = Tables<'profiles'>;
 export type PendingConnection = {
@@ -29,9 +29,37 @@ export const useConnections = () => {
   const [isSearching, setIsSearching] = useState(false);
   const [pendingConnections, setPendingConnections] = useState<PendingConnection[]>([]);
   const [isLoadingPendingConnections, setIsLoadingPendingConnections] = useState(false);
+  const [allProfiles, setAllProfiles] = useState<Profile[]>([]);
+  const [isInitialFetchDone, setIsInitialFetchDone] = useState(false);
 
-  const searchUsers = async (query: string) => {
-    if (!query.trim()) {
+  const fetchAllUsers = useCallback(async () => {
+    try {
+      setIsSearching(true);
+      const { data: profiles, error } = await supabase
+        .from('profiles')
+        .select('*')
+        .limit(100);
+
+      if (error) throw error;
+      
+      setAllProfiles(profiles || []);
+      setIsInitialFetchDone(true);
+    } catch (error) {
+      console.error('Error fetching all users:', error);
+      toast.error('Failed to load users');
+    } finally {
+      setIsSearching(false);
+    }
+  }, []);
+
+  useEffect(() => {
+    if (!isInitialFetchDone) {
+      fetchAllUsers();
+    }
+  }, [isInitialFetchDone, fetchAllUsers]);
+
+  const searchUsers = useCallback((query: string) => {
+    if (!query.trim() || !isInitialFetchDone) {
       setSearchResults({
         usernameMatches: [],
         nameMatches: []
@@ -42,35 +70,31 @@ export const useConnections = () => {
     try {
       setIsSearching(true);
       
-      // Search for username matches
-      const usernameResponse = await supabase
-        .from('profiles')
-        .select('*')
-        .ilike('username', `%${query}%`)
-        .limit(5);
-
-      // Search for name matches
-      const nameResponse = await supabase
-        .from('profiles')
-        .select('*')
-        .ilike('name', `%${query}%`)
-        .not('id', 'in', usernameResponse.data?.map(user => user.id) || [])
-        .limit(5);
-
-      if (usernameResponse.error) throw usernameResponse.error;
-      if (nameResponse.error) throw nameResponse.error;
+      const normalizedQuery = query.toLowerCase().trim();
+      const { data: { user } } = supabase.auth.getUser();
+      
+      const usernameMatches = allProfiles.filter(profile => 
+        profile.id !== user?.id && 
+        profile.username?.toLowerCase().includes(normalizedQuery)
+      ).slice(0, 5);
+      
+      const usernameIds = new Set(usernameMatches.map(p => p.id));
+      const nameMatches = allProfiles.filter(profile => 
+        profile.id !== user?.id && 
+        !usernameIds.has(profile.id) &&
+        profile.name?.toLowerCase().includes(normalizedQuery)
+      ).slice(0, 5);
 
       setSearchResults({
-        usernameMatches: usernameResponse.data || [],
-        nameMatches: nameResponse.data || []
+        usernameMatches,
+        nameMatches
       });
     } catch (error) {
-      console.error('Error searching users:', error);
-      toast.error('Failed to search users');
+      console.error('Error filtering users:', error);
     } finally {
       setIsSearching(false);
     }
-  };
+  }, [allProfiles, isInitialFetchDone]);
 
   const sendConnectionRequest = async (receiverId: string) => {
     try {
@@ -148,7 +172,6 @@ export const useConnections = () => {
 
       if (response.error) throw response.error;
       
-      // Update local state to remove the connection
       setPendingConnections(prev => prev.filter(conn => conn.id !== connectionId));
       
       toast.success(`Connection request ${status}`);
@@ -169,6 +192,8 @@ export const useConnections = () => {
     sendConnectionRequest,
     getConnectionStatus,
     getPendingConnections,
-    respondToConnectionRequest
+    respondToConnectionRequest,
+    fetchAllUsers,
+    isInitialFetchDone
   };
 };

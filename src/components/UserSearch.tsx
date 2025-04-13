@@ -8,24 +8,36 @@ import { Card, CardContent } from '@/components/ui/card';
 import { useConnections, type ConnectionStatus } from '@/hooks/useConnections';
 import { useAuth } from '@/contexts/AuthContext';
 import { Link } from 'react-router-dom';
-import { Separator } from '@/components/ui/separator';
+import { useDebounce } from '@/hooks/useDebounce';
 
 const UserSearch = () => {
   const { user } = useAuth();
   const [searchTerm, setSearchTerm] = useState('');
+  const debouncedSearchTerm = useDebounce(searchTerm, 300);
+  
   const { 
     searchResults, 
     isSearching, 
     searchUsers, 
     sendConnectionRequest,
-    getConnectionStatus 
+    getConnectionStatus,
+    fetchAllUsers,
+    isInitialFetchDone
   } = useConnections();
+  
   const [connectionStatuses, setConnectionStatuses] = useState<Record<string, ConnectionStatus>>({});
 
-  // Run search on every keystroke
+  // Initial fetch of users when component mounts
   useEffect(() => {
-    searchUsers(searchTerm);
-  }, [searchTerm, searchUsers]);
+    if (!isInitialFetchDone) {
+      fetchAllUsers();
+    }
+  }, [fetchAllUsers, isInitialFetchDone]);
+
+  // Run search when debounced search term changes
+  useEffect(() => {
+    searchUsers(debouncedSearchTerm);
+  }, [debouncedSearchTerm, searchUsers]);
 
   // Get connection status for each search result
   useEffect(() => {

@@ -15,7 +15,7 @@ import { Card, CardContent } from '@/components/ui/card';
 import { useConnections, type ConnectionStatus } from '@/hooks/useConnections';
 import { useAuth } from '@/contexts/AuthContext';
 import { Link } from 'react-router-dom';
-import { Separator } from '@/components/ui/separator';
+import { useDebounce } from '@/hooks/useDebounce';
 
 type SearchDialogProps = {
   trigger?: React.ReactNode;
@@ -25,21 +25,33 @@ const SearchDialog = ({ trigger }: SearchDialogProps) => {
   const { user } = useAuth();
   const [open, setOpen] = useState(false);
   const [searchTerm, setSearchTerm] = useState('');
+  const debouncedSearchTerm = useDebounce(searchTerm, 300);
+  
   const { 
     searchResults, 
     isSearching, 
     searchUsers, 
     sendConnectionRequest,
-    getConnectionStatus 
+    getConnectionStatus,
+    fetchAllUsers,
+    isInitialFetchDone
   } = useConnections();
+  
   const [connectionStatuses, setConnectionStatuses] = useState<Record<string, ConnectionStatus>>({});
 
-  // Run search on every keystroke
+  // Initial fetch of users when dialog opens
+  useEffect(() => {
+    if (open && !isInitialFetchDone) {
+      fetchAllUsers();
+    }
+  }, [open, fetchAllUsers, isInitialFetchDone]);
+
+  // Run search when debounced search term changes
   useEffect(() => {
     if (open) {
-      searchUsers(searchTerm);
+      searchUsers(debouncedSearchTerm);
     }
-  }, [searchTerm, searchUsers, open]);
+  }, [debouncedSearchTerm, searchUsers, open]);
 
   // Get connection status for each search result
   useEffect(() => {
