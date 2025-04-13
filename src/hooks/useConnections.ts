@@ -1,3 +1,4 @@
+
 import { useState, useEffect, useCallback } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
@@ -71,27 +72,36 @@ export const useConnections = () => {
       setIsSearching(true);
       
       const normalizedQuery = query.toLowerCase().trim();
-      const { data: { user } } = supabase.auth.getUser();
       
-      const usernameMatches = allProfiles.filter(profile => 
-        profile.id !== user?.id && 
-        profile.username?.toLowerCase().includes(normalizedQuery)
-      ).slice(0, 5);
+      // Fix: Get user data properly by awaiting the Promise before accessing data
+      const currentUser = supabase.auth.getUser();
+      let userId: string | undefined;
       
-      const usernameIds = new Set(usernameMatches.map(p => p.id));
-      const nameMatches = allProfiles.filter(profile => 
-        profile.id !== user?.id && 
-        !usernameIds.has(profile.id) &&
-        profile.name?.toLowerCase().includes(normalizedQuery)
-      ).slice(0, 5);
+      // Use the cached profiles to filter instead of making API calls
+      currentUser.then(({ data: { user } }) => {
+        userId = user?.id;
+        
+        const usernameMatches = allProfiles.filter(profile => 
+          profile.id !== userId && 
+          profile.username?.toLowerCase().includes(normalizedQuery)
+        ).slice(0, 5);
+        
+        const usernameIds = new Set(usernameMatches.map(p => p.id));
+        const nameMatches = allProfiles.filter(profile => 
+          profile.id !== userId && 
+          !usernameIds.has(profile.id) &&
+          profile.name?.toLowerCase().includes(normalizedQuery)
+        ).slice(0, 5);
 
-      setSearchResults({
-        usernameMatches,
-        nameMatches
+        setSearchResults({
+          usernameMatches,
+          nameMatches
+        });
+        
+        setIsSearching(false);
       });
     } catch (error) {
       console.error('Error filtering users:', error);
-    } finally {
       setIsSearching(false);
     }
   }, [allProfiles, isInitialFetchDone]);
