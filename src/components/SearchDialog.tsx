@@ -9,7 +9,7 @@ import {
 } from '@/components/ui/dialog';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
-import { Search, User, UserPlus, Clock, Check, X } from 'lucide-react';
+import { Search, User, UserPlus, Clock, Check, X, Send } from 'lucide-react';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { Card, CardContent } from '@/components/ui/card';
 import { useConnections, type ConnectionStatus } from '@/hooks/useConnections';
@@ -32,6 +32,7 @@ const SearchDialog = ({ trigger }: SearchDialogProps) => {
     isSearching, 
     searchUsers, 
     sendConnectionRequest,
+    resendConnectionRequest,
     getConnectionStatus,
     fetchAllUsers,
     isInitialFetchDone
@@ -90,6 +91,16 @@ const SearchDialog = ({ trigger }: SearchDialogProps) => {
     }
   };
 
+  const handleResendRequest = async (userId: string) => {
+    const success = await resendConnectionRequest(userId);
+    if (success) {
+      setConnectionStatuses(prev => ({
+        ...prev,
+        [userId]: 'pending'
+      }));
+    }
+  };
+
   const renderConnectionButton = (userId: string) => {
     const status = connectionStatuses[userId];
     
@@ -108,8 +119,13 @@ const SearchDialog = ({ trigger }: SearchDialogProps) => {
         );
       case 'declined':
         return (
-          <Button variant="ghost" size="sm" className="px-2" disabled>
-            <X size={16} className="mr-1" /> Declined
+          <Button 
+            variant="ghost" 
+            size="sm" 
+            className="px-2 text-blue-600 hover:text-blue-700" 
+            onClick={() => handleResendRequest(userId)}
+          >
+            <Send size={16} className="mr-1" /> Resend Request
           </Button>
         );
       default:

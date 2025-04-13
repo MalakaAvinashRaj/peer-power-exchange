@@ -1,4 +1,3 @@
-
 import { useState, useEffect, useCallback } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
@@ -144,6 +143,49 @@ export const useConnections = () => {
     }
   };
 
+  // Resend a connection request after it has been declined
+  const resendConnectionRequest = async (otherUserId: string) => {
+    try {
+      const { data } = await supabase.auth.getUser();
+      const user = data.user;
+      
+      if (!user?.id) {
+        toast.error('You must be logged in to resend connection requests');
+        return false;
+      }
+      
+      // First, we need to delete the existing declined connection
+      const { error: deleteError } = await supabase
+        .from('connections')
+        .delete()
+        .match({
+          sender_id: user.id,
+          receiver_id: otherUserId,
+          status: 'declined'
+        });
+      
+      if (deleteError) throw deleteError;
+      
+      // Then create a new connection request
+      const response = await supabase
+        .rpc('create_connection', { 
+          sender_id_param: user.id,
+          receiver_id_param: otherUserId 
+        });
+
+      if (response.error) throw response.error;
+
+      // Emit the connection change event to update UI
+      window.dispatchEvent(connectionChangeEvent);
+      toast.success('Connection request resent');
+      return true;
+    } catch (error) {
+      console.error('Error resending connection request:', error);
+      toast.error('Failed to resend connection request');
+      return false;
+    }
+  };
+
   // Get connection status between current user and another user
   const getConnectionStatus = async (otherUserId: string): Promise<ConnectionStatus> => {
     try {
@@ -266,6 +308,7 @@ export const useConnections = () => {
     isLoadingPendingConnections,
     searchUsers,
     sendConnectionRequest,
+    resendConnectionRequest,
     getConnectionStatus,
     getPendingConnections,
     respondToConnectionRequest,
