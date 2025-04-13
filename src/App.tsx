@@ -1,12 +1,12 @@
 
-import React, { useEffect, useState } from 'react';
+import React, { useEffect } from 'react';
 import {
   createBrowserRouter,
   RouterProvider,
   useNavigate,
 } from 'react-router-dom';
 import { useAuth } from '@/contexts/AuthContext';
-import Login from './pages/Login';
+import Login from './pages/Auth/Login';
 import Register from './pages/Register';
 import Home from './pages/Home';
 import Profile from '@/pages/Profile';
@@ -36,18 +36,10 @@ const ProtectedRoute = ({ children }: { children: React.ReactNode }) => {
 };
 
 function App() {
-  const { user, isLoading } = useAuth();
-  const [hydrated, setHydrated] = useState(false);
+  const { isLoading } = useAuth();
 
-  useEffect(() => {
-    // Set hydrated to true once authentication state is loaded
-    if (!isLoading) {
-      setHydrated(true);
-    }
-  }, [isLoading]);
-
-  if (!hydrated) {
-    return <div>Loading...</div>;
+  if (isLoading) {
+    return <div className="flex h-screen items-center justify-center">Loading...</div>;
   }
 
   return (

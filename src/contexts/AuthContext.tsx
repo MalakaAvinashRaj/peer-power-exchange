@@ -40,66 +40,67 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
   const [session, setSession] = useState(null);
 
   useEffect(() => {
+    // First set up the auth state listener
+    const { data: { subscription } } = supabase.auth.onAuthStateChange((_event, session) => {
+      setSession(session);
+      if (!session) {
+        setUser(null);
+        setIsLoading(false);
+      }
+    });
+
+    // Then check for existing session
     const getSession = async () => {
       const { data: { session } } = await supabase.auth.getSession();
       setSession(session);
+      
+      if (session?.user) {
+        fetchUserProfile(session.user.id);
+      } else {
+        setIsLoading(false);
+      }
     };
 
     getSession();
 
-    supabase.auth.onAuthStateChange((_event, session) => {
-      setSession(session);
-    });
+    return () => {
+      subscription.unsubscribe();
+    };
   }, []);
 
-  useEffect(() => {
-    const fetchUser = async () => {
-      if (!session?.user.id) {
+  const fetchUserProfile = async (userId: string) => {
+    try {
+      const { data, error } = await supabase
+        .from('profiles')
+        .select('*')
+        .eq('id', userId)
+        .single();
+
+      if (error) {
+        console.error('Error fetching user profile:', error);
         setIsLoading(false);
         return;
       }
 
-      setIsLoading(true);
-
-      try {
-        const { data, error } = await supabase
-          .from('profiles')
-          .select('*')
-          .eq('id', session.user.id)
-          .single();
-
-        if (error) {
-          console.error('Error fetching user profile:', error);
-          return;
-        }
-
-        if (data) {
-          setUser({
-            id: data.id,
-            name: data.name,
-            email: data.email,
-            avatar_url: data.avatar_url,
-            username: data.username,
-            bio: data.bio,
-            isTeacher: data.is_teacher || false,
-            is_onboarded: data.is_onboarded,
-            updated_at: data.updated_at
-          });
-        }
-      } catch (error) {
-        console.error('Error during user fetching:', error);
-      } finally {
-        setIsLoading(false);
+      if (data) {
+        setUser({
+          id: data.id,
+          name: data.name,
+          email: data.email,
+          avatar_url: data.avatar_url,
+          username: data.username,
+          bio: data.bio,
+          isTeacher: data.is_teacher || false,
+          is_onboarded: data.is_onboarded,
+          updated_at: data.updated_at
+        });
       }
-    };
-
-    if (session?.user) {
-      fetchUser();
-    } else {
-      setUser(null);
+    } catch (error) {
+      console.error('Error during user fetching:', error);
+    } finally {
       setIsLoading(false);
     }
-  }, [session]);
+  };
 
   const generateUsername = async (fullName: string): Promise<string> => {
     let baseUsername = fullName.toLowerCase().replace(/\s+/g, '');
