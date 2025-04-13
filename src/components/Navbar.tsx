@@ -1,5 +1,5 @@
 
-import React from 'react';
+import React, { useEffect } from 'react';
 import { Link } from 'react-router-dom';
 import { Button } from '@/components/ui/button';
 import { 
@@ -19,11 +19,40 @@ import {
 } from '@/components/ui/dropdown-menu';
 import { useIsMobile } from '@/hooks/use-mobile';
 import { useAuth } from '@/contexts/AuthContext';
+import { useConnections } from '@/hooks/useConnections';
 import SearchDialog from './SearchDialog';
 
 const Navbar = () => {
   const isMobile = useIsMobile();
   const { user, isAuthenticated, logout } = useAuth();
+  const { hasPendingRequests, getPendingConnections, subscribeToConnectionChanges } = useConnections();
+
+  // Initialize connection tracking for the current user
+  useEffect(() => {
+    let unsubscribe: (() => void) | undefined;
+    
+    if (user?.id) {
+      // Initial fetch of pending connections
+      getPendingConnections();
+      
+      // Subscribe to real-time updates
+      unsubscribe = subscribeToConnectionChanges(user.id);
+      
+      // Listen for connection change events
+      const handleConnectionChange = () => {
+        getPendingConnections();
+      };
+      
+      window.addEventListener('connection-change', handleConnectionChange);
+      
+      return () => {
+        window.removeEventListener('connection-change', handleConnectionChange);
+        if (unsubscribe) {
+          unsubscribe();
+        }
+      };
+    }
+  }, [user?.id, getPendingConnections, subscribeToConnectionChanges]);
 
   return (
     <nav className="border-b sticky top-0 bg-white/80 backdrop-blur-md z-50">
@@ -66,9 +95,12 @@ const Navbar = () => {
                       <MessageSquare size={18} />
                     </Link>
                   </Button>
-                  <Button variant="outline" size="icon" className="text-muted-foreground" asChild>
+                  <Button variant="outline" size="icon" className="text-muted-foreground relative" asChild>
                     <Link to="/network">
                       <Users size={18} />
+                      {hasPendingRequests && (
+                        <span className="absolute top-0 right-0 h-2.5 w-2.5 rounded-full bg-green-500 ring-2 ring-white" />
+                      )}
                     </Link>
                   </Button>
                   <Button variant="outline" size="icon" className="text-muted-foreground" asChild>
@@ -106,7 +138,12 @@ const Navbar = () => {
                     <Link to="/dashboard">Dashboard</Link>
                   </DropdownMenuItem>
                   <DropdownMenuItem asChild>
-                    <Link to="/network">Network</Link>
+                    <Link to="/network">
+                      Network
+                      {hasPendingRequests && (
+                        <span className="ml-2 h-2 w-2 rounded-full bg-green-500" />
+                      )}
+                    </Link>
                   </DropdownMenuItem>
                   <DropdownMenuItem asChild>
                     <Link to="/settings">Settings</Link>
@@ -156,7 +193,12 @@ const Navbar = () => {
                       <Link to="/messages">Messages</Link>
                     </DropdownMenuItem>
                     <DropdownMenuItem asChild>
-                      <Link to="/network">Network</Link>
+                      <Link to="/network">
+                        Network
+                        {hasPendingRequests && (
+                          <span className="ml-2 h-2 w-2 rounded-full bg-green-500" />
+                        )}
+                      </Link>
                     </DropdownMenuItem>
                     <DropdownMenuItem asChild>
                       <Link to="/sessions">Sessions</Link>

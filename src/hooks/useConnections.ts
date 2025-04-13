@@ -1,3 +1,4 @@
+
 import { useState, useEffect, useCallback } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
@@ -13,7 +14,7 @@ export type PendingConnection = {
   created_at: string;
 };
 
-export type ConnectionStatus = 'none' | 'pending' | 'accepted' | 'declined';
+export type ConnectionStatus = 'none' | 'pending' | 'accepted';
 
 export type SearchResults = {
   usernameMatches: Profile[];
@@ -33,6 +34,7 @@ export const useConnections = () => {
   const [isLoadingPendingConnections, setIsLoadingPendingConnections] = useState(false);
   const [allProfiles, setAllProfiles] = useState<Profile[]>([]);
   const [isInitialFetchDone, setIsInitialFetchDone] = useState(false);
+  const [hasPendingRequests, setHasPendingRequests] = useState(false);
 
   // Fetch all users (for search functionality)
   const fetchAllUsers = useCallback(async () => {
@@ -117,6 +119,21 @@ export const useConnections = () => {
         return false;
       }
       
+      // First, if there's a declined connection, delete it
+      const { error: deleteError } = await supabase
+        .from('connections')
+        .delete()
+        .match({
+          sender_id: user.id,
+          receiver_id: receiverId,
+          status: 'declined'
+        });
+      
+      if (deleteError) {
+        console.error('Error deleting declined connection:', deleteError);
+      }
+      
+      // Now create a new connection request
       const response = await supabase
         .rpc('create_connection', { 
           sender_id_param: user.id,
@@ -143,49 +160,6 @@ export const useConnections = () => {
     }
   };
 
-  // Resend a connection request after it has been declined
-  const resendConnectionRequest = async (otherUserId: string) => {
-    try {
-      const { data } = await supabase.auth.getUser();
-      const user = data.user;
-      
-      if (!user?.id) {
-        toast.error('You must be logged in to resend connection requests');
-        return false;
-      }
-      
-      // First, we need to delete the existing declined connection
-      const { error: deleteError } = await supabase
-        .from('connections')
-        .delete()
-        .match({
-          sender_id: user.id,
-          receiver_id: otherUserId,
-          status: 'declined'
-        });
-      
-      if (deleteError) throw deleteError;
-      
-      // Then create a new connection request
-      const response = await supabase
-        .rpc('create_connection', { 
-          sender_id_param: user.id,
-          receiver_id_param: otherUserId 
-        });
-
-      if (response.error) throw response.error;
-
-      // Emit the connection change event to update UI
-      window.dispatchEvent(connectionChangeEvent);
-      toast.success('Connection request resent');
-      return true;
-    } catch (error) {
-      console.error('Error resending connection request:', error);
-      toast.error('Failed to resend connection request');
-      return false;
-    }
-  };
-
   // Get connection status between current user and another user
   const getConnectionStatus = async (otherUserId: string): Promise<ConnectionStatus> => {
     try {
@@ -203,7 +177,14 @@ export const useConnections = () => {
         });
 
       if (response.error) throw response.error;
-      return response.data as ConnectionStatus;
+      
+      // If the status is 'declined', treat it as 'none'
+      const status = response.data as string;
+      if (status === 'declined') {
+        return 'none';
+      }
+      
+      return status as ConnectionStatus;
     } catch (error) {
       console.error('Error getting connection status:', error);
       return 'none';
@@ -219,6 +200,7 @@ export const useConnections = () => {
       
       if (!user?.id) {
         setPendingConnections([]);
+        setHasPendingRequests(false);
         return;
       }
       
@@ -231,9 +213,11 @@ export const useConnections = () => {
       
       console.log('Pending connections:', response.data);
       setPendingConnections(response.data || []);
+      setHasPendingRequests((response.data || []).length > 0);
     } catch (error) {
       console.error('Error getting pending connections:', error);
       toast.error('Failed to get pending connection requests');
+      setHasPendingRequests(false);
     } finally {
       setIsLoadingPendingConnections(false);
     }
@@ -242,20 +226,34 @@ export const useConnections = () => {
   // Respond to a connection request (accept or decline)
   const respondToConnectionRequest = async (connectionId: string, status: 'accepted' | 'declined') => {
     try {
-      const response = await supabase
-        .rpc('update_connection_status', { 
-          connection_id_param: connectionId,
-          status_param: status 
-        });
+      if (status === 'declined') {
+        // If declining, just delete the connection request
+        const { error } = await supabase
+          .from('connections')
+          .delete()
+          .eq('id', connectionId);
+          
+        if (error) throw error;
+      } else {
+        // If accepting, update status to accepted
+        const response = await supabase
+          .rpc('update_connection_status', { 
+            connection_id_param: connectionId,
+            status_param: status 
+          });
 
-      if (response.error) throw response.error;
+        if (response.error) throw response.error;
+      }
       
       setPendingConnections(prev => prev.filter(conn => conn.id !== connectionId));
+      if (pendingConnections.length <= 1) {
+        setHasPendingRequests(false);
+      }
       
       // Emit the connection change event to update UI
       window.dispatchEvent(connectionChangeEvent);
       
-      toast.success(`Connection request ${status}`);
+      toast.success(`Connection request ${status === 'accepted' ? 'accepted' : 'declined'}`);
       return true;
     } catch (error) {
       console.error(`Error ${status} connection request:`, error);
@@ -282,6 +280,8 @@ export const useConnections = () => {
         console.log('Connection change detected (as sender)');
         // Emit the connection change event to update UI
         window.dispatchEvent(connectionChangeEvent);
+        // Check for new pending requests
+        getPendingConnections();
       })
       .on('postgres_changes', {
         event: '*',
@@ -292,6 +292,8 @@ export const useConnections = () => {
         console.log('Connection change detected (as receiver)');
         // Emit the connection change event to update UI
         window.dispatchEvent(connectionChangeEvent);
+        // Check for new pending requests
+        getPendingConnections();
       })
       .subscribe();
       
@@ -299,16 +301,16 @@ export const useConnections = () => {
       console.log('Unsubscribing from connection changes');
       supabase.removeChannel(channel);
     };
-  }, []);
+  }, [getPendingConnections]);
 
   return {
     searchResults,
     isSearching,
     pendingConnections,
     isLoadingPendingConnections,
+    hasPendingRequests,
     searchUsers,
     sendConnectionRequest,
-    resendConnectionRequest,
     getConnectionStatus,
     getPendingConnections,
     respondToConnectionRequest,

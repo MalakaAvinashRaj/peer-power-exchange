@@ -1,6 +1,6 @@
 
 import React, { useState, useEffect } from 'react';
-import { Search, User, UserPlus, Clock, Check, X, Send } from 'lucide-react';
+import { Search, User, UserPlus, Clock, Check } from 'lucide-react';
 import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
@@ -20,7 +20,6 @@ const UserSearch = () => {
     isSearching, 
     searchUsers, 
     sendConnectionRequest,
-    resendConnectionRequest,
     getConnectionStatus,
     fetchAllUsers,
     isInitialFetchDone
@@ -77,16 +76,6 @@ const UserSearch = () => {
     }
   };
 
-  const handleResendRequest = async (userId: string) => {
-    const success = await resendConnectionRequest(userId);
-    if (success) {
-      setConnectionStatuses(prev => ({
-        ...prev,
-        [userId]: 'pending'
-      }));
-    }
-  };
-
   const renderConnectionButton = (userId: string) => {
     const status = connectionStatuses[userId];
     
@@ -101,17 +90,6 @@ const UserSearch = () => {
         return (
           <Button variant="ghost" size="sm" className="px-2" disabled>
             <Clock size={16} className="mr-1" /> Pending
-          </Button>
-        );
-      case 'declined':
-        return (
-          <Button 
-            variant="ghost" 
-            size="sm" 
-            className="px-2 text-blue-600 hover:text-blue-700" 
-            onClick={() => handleResendRequest(userId)}
-          >
-            <Send size={16} className="mr-1" /> Resend Request
           </Button>
         );
       default:
