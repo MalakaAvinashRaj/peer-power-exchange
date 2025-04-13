@@ -16,7 +16,7 @@ const Register = () => {
   const searchParams = new URLSearchParams(location.search);
   const isTeacher = searchParams.get('teacher') === 'true';
   
-  const { register, isLoading, isAuthenticated } = useAuth();
+  const { signUp, isLoading, isAuthenticated, generateUsername } = useAuth();
   const [formData, setFormData] = useState({
     fullName: '',
     email: '',
@@ -25,6 +25,7 @@ const Register = () => {
     isTeacher: isTeacher,
     agreeTerms: false
   });
+  const [generatedUsername, setGeneratedUsername] = useState('');
 
   // Redirect if already logged in
   useEffect(() => {
@@ -32,6 +33,22 @@ const Register = () => {
       navigate('/dashboard');
     }
   }, [isAuthenticated, navigate]);
+
+  // Generate username when full name changes
+  useEffect(() => {
+    const generateUsernameFromName = async () => {
+      if (formData.fullName.trim().length > 0) {
+        try {
+          const username = await generateUsername(formData.fullName);
+          setGeneratedUsername(username);
+        } catch (error) {
+          console.error('Error generating username:', error);
+        }
+      }
+    };
+
+    generateUsernameFromName();
+  }, [formData.fullName, generateUsername]);
 
   const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const { name, value } = e.target;
@@ -54,8 +71,28 @@ const Register = () => {
       toast.error('You must agree to the terms and conditions');
       return;
     }
+
+    if (!generatedUsername) {
+      toast.error('Please enter your full name to generate a username');
+      return;
+    }
     
-    await register(formData.email, formData.password, formData.fullName, formData.isTeacher);
+    try {
+      const response = await signUp(formData.email, formData.password, {
+        name: formData.fullName,
+        username: generatedUsername
+      });
+      
+      if (response.error) {
+        toast.error(response.error.message);
+      } else {
+        toast.success('Account created successfully! You can now log in.');
+        navigate('/login');
+      }
+    } catch (error) {
+      console.error('Registration error:', error);
+      toast.error('Failed to create account. Please try again.');
+    }
   };
 
   return (
@@ -92,6 +129,25 @@ const Register = () => {
                 disabled={isLoading}
               />
             </div>
+            
+            {generatedUsername && (
+              <div className="space-y-2">
+                <Label htmlFor="username">Username (Auto-generated)</Label>
+                <Input
+                  id="username"
+                  name="username"
+                  type="text"
+                  value={generatedUsername}
+                  readOnly
+                  disabled
+                  className="bg-muted"
+                />
+                <p className="text-xs text-muted-foreground">
+                  Your unique username is automatically generated from your name
+                </p>
+              </div>
+            )}
+            
             <div className="space-y-2">
               <Label htmlFor="email">Email</Label>
               <Input

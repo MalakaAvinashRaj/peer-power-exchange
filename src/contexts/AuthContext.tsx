@@ -1,3 +1,4 @@
+
 import React, { createContext, useState, useEffect, useContext } from 'react';
 import { AuthResponse } from '@supabase/supabase-js';
 import { supabase } from '@/integrations/supabase/client';
@@ -15,6 +16,7 @@ export interface User {
   username: string | null;
   bio: string | null;
   isTeacher: boolean;
+  is_onboarded?: boolean;
   updated_at: string;
 }
 
@@ -25,6 +27,8 @@ interface AuthContextType {
   signUp: (email: string, password: string, userData: UserFormData) => Promise<AuthResponse>;
   signOut: () => Promise<void>;
   updateUserData: () => Promise<void>;
+  generateUsername: (fullName: string) => Promise<string>;
+  isAuthenticated: boolean;
 }
 
 export const AuthContext = createContext<AuthContextType | undefined>(undefined);
@@ -69,7 +73,17 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
         }
 
         if (data) {
-          setUser(data as User);
+          setUser({
+            id: data.id,
+            name: data.name,
+            email: data.email,
+            avatar_url: data.avatar_url,
+            username: data.username,
+            bio: data.bio,
+            isTeacher: data.is_teacher || false,
+            is_onboarded: data.is_onboarded,
+            updated_at: data.updated_at
+          });
         }
       } catch (error) {
         console.error('Error during user fetching:', error);
@@ -85,6 +99,43 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
       setIsLoading(false);
     }
   }, [session]);
+
+  const generateUsername = async (fullName: string): Promise<string> => {
+    // Convert the full name to lowercase and remove spaces
+    let baseUsername = fullName.toLowerCase().replace(/\s+/g, '');
+    
+    // Remove any special characters
+    baseUsername = baseUsername.replace(/[^\w]/g, '');
+    
+    let username = baseUsername;
+    let isUnique = false;
+    let attempt = 0;
+    
+    // Check if the username is unique
+    while (!isUnique) {
+      const { data, error } = await supabase
+        .from('profiles')
+        .select('username')
+        .eq('username', username)
+        .maybeSingle();
+      
+      if (error) {
+        console.error('Error checking username uniqueness:', error);
+        throw error;
+      }
+      
+      if (!data) {
+        // Username is unique
+        isUnique = true;
+      } else {
+        // Add a number to the username and try again
+        attempt += 1;
+        username = `${baseUsername}${attempt}`;
+      }
+    }
+    
+    return username;
+  };
 
   const signIn = async (email: string, password: string): Promise<AuthResponse> => {
     setIsLoading(true);
@@ -157,7 +208,17 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
       }
       
       if (data) {
-        setUser(data as User);
+        setUser({
+          id: data.id,
+          name: data.name,
+          email: data.email,
+          avatar_url: data.avatar_url,
+          username: data.username,
+          bio: data.bio,
+          isTeacher: data.is_teacher || false,
+          is_onboarded: data.is_onboarded,
+          updated_at: data.updated_at
+        });
       }
     } catch (error) {
       console.error('Error in updateUserData:', error);
@@ -173,6 +234,8 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
     signUp,
     signOut,
     updateUserData,
+    generateUsername,
+    isAuthenticated: !!user,
   };
 
   return (

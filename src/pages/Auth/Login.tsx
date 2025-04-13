@@ -11,7 +11,7 @@ import { Loader2 } from 'lucide-react';
 
 const Login = () => {
   const navigate = useNavigate();
-  const { login, isLoading, isAuthenticated } = useAuth();
+  const { signIn, isLoading, isAuthenticated } = useAuth();
   const [formData, setFormData] = useState({
     email: '',
     password: '',
@@ -31,7 +31,19 @@ const Login = () => {
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    await login(formData.email, formData.password);
+    try {
+      const response = await signIn(formData.email, formData.password);
+      
+      if (response.error) {
+        toast.error(response.error.message);
+      } else {
+        toast.success('Logged in successfully!');
+        navigate('/dashboard');
+      }
+    } catch (error) {
+      console.error('Login error:', error);
+      toast.error('Failed to log in. Please try again.');
+    }
   };
 
   return (
