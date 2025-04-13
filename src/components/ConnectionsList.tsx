@@ -30,53 +30,23 @@ const ConnectionsList = () => {
       try {
         setIsLoading(true);
         
-        // Fetch connections where the current user is either sender or receiver
-        const { data: sentConnections, error: sentError } = await supabase
-          .from('connections')
-          .select(`
-            id,
-            receiver_id,
-            profiles:receiver_id (id, name, username, avatar_url)
-          `)
-          .eq('sender_id', user.id)
-          .eq('status', 'accepted');
+        // Use Supabase RPC function to get connections instead of direct queries
+        const { data, error } = await supabase
+          .rpc('get_connections', { 
+            user_id_param: user.id 
+          });
           
-        if (sentError) throw sentError;
+        if (error) throw error;
         
-        const { data: receivedConnections, error: receivedError } = await supabase
-          .from('connections')
-          .select(`
-            id,
-            sender_id,
-            profiles:sender_id (id, name, username, avatar_url)
-          `)
-          .eq('receiver_id', user.id)
-          .eq('status', 'accepted');
-          
-        if (receivedError) throw receivedError;
-        
-        // Transform the data into a consistent format
-        const formattedSentConnections = sentConnections.map(conn => ({
-          id: conn.id,
-          user_id: conn.receiver_id,
-          name: (conn.profiles as Tables<'profiles'>).name,
-          username: (conn.profiles as Tables<'profiles'>).username,
-          avatar_url: (conn.profiles as Tables<'profiles'>).avatar_url
-        }));
-        
-        const formattedReceivedConnections = receivedConnections.map(conn => ({
-          id: conn.id,
-          user_id: conn.sender_id,
-          name: (conn.profiles as Tables<'profiles'>).name,
-          username: (conn.profiles as Tables<'profiles'>).username,
-          avatar_url: (conn.profiles as Tables<'profiles'>).avatar_url
-        }));
-        
-        // Combine both sets of connections
-        setConnections([...formattedSentConnections, ...formattedReceivedConnections]);
+        if (data) {
+          setConnections(data);
+        } else {
+          setConnections([]);
+        }
       } catch (error) {
         console.error('Error fetching connections:', error);
         toast.error('Failed to load connections');
+        setConnections([]);
       } finally {
         setIsLoading(false);
       }
