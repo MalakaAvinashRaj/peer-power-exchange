@@ -104,7 +104,8 @@ export const useMessaging = (otherUserId?: string) => {
 
       if (response.error) throw response.error;
       
-      // Add the new message to the state
+      // The real-time subscription should handle this, but let's also update the state
+      // to provide immediate feedback to the user
       setMessages(prev => [...prev, response.data]);
       return true;
     } catch (error) {
@@ -125,30 +126,47 @@ export const useMessaging = (otherUserId?: string) => {
       // Initial fetch
       await fetchMessages(user.id, otherUserId);
 
-      // Subscribe to realtime updates
+      // Create a more reliable channel for real-time updates
       const channel = supabase
-        .channel('messages-changes')
+        .channel(`messages-realtime-${user.id}-${otherUserId}`)
         .on('postgres_changes', {
-          event: '*',
+          event: 'INSERT',
+          schema: 'public',
+          table: 'messages',
+          filter: `sender_id=eq.${otherUserId},receiver_id=eq.${user.id}`,
+        }, async (payload) => {
+          console.log('New message received:', payload);
+          // Fetch all messages again to ensure everything is up to date
+          await fetchMessages(user.id, otherUserId);
+        })
+        .on('postgres_changes', {
+          event: 'INSERT',
+          schema: 'public',
+          table: 'messages',
+          filter: `sender_id=eq.${user.id},receiver_id=eq.${otherUserId}`,
+        }, async (payload) => {
+          console.log('Message sent from self:', payload);
+          // Refresh all messages
+          await fetchMessages(user.id, otherUserId);
+        })
+        .on('postgres_changes', {
+          event: 'UPDATE',
           schema: 'public',
           table: 'messages',
           filter: `sender_id=eq.${otherUserId},receiver_id=eq.${user.id}`,
         }, async () => {
-          console.log('New message received');
+          console.log('Message updated (read status)');
           await fetchMessages(user.id, otherUserId);
         })
-        .on('postgres_changes', {
-          event: '*',
-          schema: 'public',
-          table: 'messages',
-          filter: `sender_id=eq.${user.id},receiver_id=eq.${otherUserId}`,
-        }, async () => {
-          console.log('Message update from self');
-          await fetchMessages(user.id, otherUserId);
-        })
-        .subscribe();
+        .subscribe((status) => {
+          console.log(`Realtime status for messages: ${status}`);
+          if (status !== 'SUBSCRIBED') {
+            console.error('Failed to subscribe to messages channel:', status);
+          }
+        });
 
       return () => {
+        console.log('Unsubscribing from messages channel');
         supabase.removeChannel(channel);
       };
     };

@@ -11,7 +11,6 @@ import { Input } from '@/components/ui/input';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { Button } from '@/components/ui/button';
 import { Search, User } from 'lucide-react';
-import { useConnections } from '@/hooks/useConnections';
 import { useAuth } from '@/contexts/AuthContext';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { toast } from 'sonner';
@@ -39,7 +38,12 @@ const StartChatDialog = ({ onClose, onSelectUser }: StartChatDialogProps) => {
           user_id_param: user.id 
         });
           
-        if (error) throw error;
+        if (error) {
+          console.error('Error loading connections:', error);
+          toast.error('Failed to load connections');
+          return;
+        }
+        
         setConnections(data || []);
       } catch (err) {
         console.error('Error loading connections:', err);
