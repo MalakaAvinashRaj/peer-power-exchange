@@ -7,18 +7,29 @@ import { Button } from '@/components/ui/button';
 import { Check, X, User } from 'lucide-react';
 import { Link } from 'react-router-dom';
 import { formatDistanceToNow } from 'date-fns';
+import { useAuth } from '@/contexts/AuthContext';
 
 const ConnectionRequests = () => {
+  const { user } = useAuth();
   const { 
     pendingConnections, 
     isLoadingPendingConnections, 
     getPendingConnections, 
-    respondToConnectionRequest 
+    respondToConnectionRequest,
+    subscribeToConnectionChanges
   } = useConnections();
 
   useEffect(() => {
+    // Initial fetch
     getPendingConnections();
-  }, [getPendingConnections]);
+    
+    // Subscribe to real-time updates
+    const unsubscribe = user?.id ? subscribeToConnectionChanges(user.id) : undefined;
+    
+    return () => {
+      if (unsubscribe) unsubscribe();
+    };
+  }, [getPendingConnections, subscribeToConnectionChanges, user?.id]);
 
   const handleAccept = async (connectionId: string) => {
     await respondToConnectionRequest(connectionId, 'accepted');
@@ -28,7 +39,7 @@ const ConnectionRequests = () => {
     await respondToConnectionRequest(connectionId, 'declined');
   };
 
-  if (isLoadingPendingConnections) {
+  if (isLoadingPendingConnections && pendingConnections.length === 0) {
     return <div className="text-center py-4">Loading connection requests...</div>;
   }
 

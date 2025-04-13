@@ -8,6 +8,7 @@ import { Link } from 'react-router-dom';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/contexts/AuthContext';
 import { toast } from 'sonner';
+import { useConnections } from '@/hooks/useConnections';
 
 type Connection = {
   id: string;
@@ -19,40 +20,59 @@ type Connection = {
 
 const ConnectionsList = () => {
   const { user } = useAuth();
+  const { subscribeToConnectionChanges } = useConnections();
   const [connections, setConnections] = useState<Connection[]>([]);
   const [isLoading, setIsLoading] = useState(true);
 
-  useEffect(() => {
-    const fetchConnections = async () => {
-      if (!user?.id) return;
-      
-      try {
-        setIsLoading(true);
-        
-        // Use Supabase RPC function to get connections
-        const { data, error } = await supabase
-          .rpc('get_connections', { 
-            user_id_param: user.id 
-          });
-          
-        if (error) throw error;
-        
-        if (data) {
-          setConnections(data as Connection[]);
-        } else {
-          setConnections([]);
-        }
-      } catch (error) {
-        console.error('Error fetching connections:', error);
-        toast.error('Failed to load connections');
-        setConnections([]);
-      } finally {
-        setIsLoading(false);
-      }
-    };
+  const fetchConnections = async () => {
+    if (!user?.id) return;
     
+    try {
+      setIsLoading(true);
+      
+      // Use Supabase RPC function to get connections
+      const { data, error } = await supabase
+        .rpc('get_connections', { 
+          user_id_param: user.id 
+        });
+        
+      if (error) throw error;
+      
+      if (data) {
+        setConnections(data as Connection[]);
+      } else {
+        setConnections([]);
+      }
+    } catch (error) {
+      console.error('Error fetching connections:', error);
+      toast.error('Failed to load connections');
+      setConnections([]);
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  useEffect(() => {
+    // Initial fetch
     fetchConnections();
-  }, [user?.id]);
+    
+    // Subscribe to real-time updates
+    const unsubscribe = user?.id ? subscribeToConnectionChanges(user.id) : undefined;
+    
+    if (unsubscribe) {
+      // Set up interval to refresh connections when there are changes
+      const intervalId = setInterval(() => {
+        fetchConnections();
+      }, 5000);
+      
+      return () => {
+        unsubscribe();
+        clearInterval(intervalId);
+      };
+    }
+    
+    return () => {};
+  }, [user?.id, subscribeToConnectionChanges]);
 
   if (isLoading) {
     return <div className="text-center py-4">Loading connections...</div>;

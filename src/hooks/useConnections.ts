@@ -193,6 +193,40 @@ export const useConnections = () => {
     }
   };
 
+  // Create subscription for real-time updates
+  const subscribeToConnectionChanges = useCallback((userId: string) => {
+    if (!userId) return undefined;
+    
+    console.log('Subscribing to connection changes for user:', userId);
+    
+    const channel = supabase
+      .channel('connection-changes')
+      .on('postgres_changes', {
+        event: '*',
+        schema: 'public',
+        table: 'connections',
+        filter: `sender_id=eq.${userId}`,
+      }, () => {
+        console.log('Connection change detected (as sender)');
+        getPendingConnections();
+      })
+      .on('postgres_changes', {
+        event: '*',
+        schema: 'public',
+        table: 'connections',
+        filter: `receiver_id=eq.${userId}`,
+      }, () => {
+        console.log('Connection change detected (as receiver)');
+        getPendingConnections();
+      })
+      .subscribe();
+      
+    return () => {
+      console.log('Unsubscribing from connection changes');
+      supabase.removeChannel(channel);
+    };
+  }, []);
+
   return {
     searchResults,
     isSearching,
@@ -204,6 +238,7 @@ export const useConnections = () => {
     getPendingConnections,
     respondToConnectionRequest,
     fetchAllUsers,
-    isInitialFetchDone
+    isInitialFetchDone,
+    subscribeToConnectionChanges
   };
 };
