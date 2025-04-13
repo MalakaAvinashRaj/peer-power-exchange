@@ -24,6 +24,7 @@ const ConnectionsList = () => {
   const [connections, setConnections] = useState<Connection[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [isFirstLoad, setIsFirstLoad] = useState(true);
+  const [connectionSubscribed, setConnectionSubscribed] = useState(false);
 
   const fetchConnections = async () => {
     if (!user?.id) return;
@@ -41,6 +42,7 @@ const ConnectionsList = () => {
       
       if (data) {
         setConnections(data as Connection[]);
+        console.log('Connections fetched:', data);
       } else {
         setConnections([]);
       }
@@ -57,29 +59,57 @@ const ConnectionsList = () => {
   };
 
   useEffect(() => {
-    // Initial fetch
-    fetchConnections();
+    let unsubscribe: (() => void) | undefined;
     
-    // Subscribe to real-time updates
-    const unsubscribe = user?.id ? subscribeToConnectionChanges(user.id) : undefined;
-    
-    // Create a listener to refresh connections when real-time events are received
-    const connectionChangeHandler = () => {
-      console.log('Connection state changed, refreshing connections list');
-      fetchConnections();
+    const initializeConnectionsList = async () => {
+      if (!user?.id) return;
+      
+      try {
+        // Initial fetch
+        await fetchConnections();
+        
+        // Subscribe to real-time updates
+        unsubscribe = subscribeToConnectionChanges(user.id);
+        setConnectionSubscribed(true);
+        
+        // Create a listener to refresh connections when real-time events are received
+        const connectionChangeHandler = () => {
+          console.log('Connection state changed, refreshing connections list');
+          fetchConnections();
+        };
+        
+        // Add event listener for connection changes
+        window.addEventListener('connection-change', connectionChangeHandler);
+        
+        return () => {
+          window.removeEventListener('connection-change', connectionChangeHandler);
+        };
+      } catch (error) {
+        console.error('Error initializing connections list:', error);
+        setIsFirstLoad(false);
+      }
     };
     
-    // Add event listener for connection changes
-    window.addEventListener('connection-change', connectionChangeHandler);
+    initializeConnectionsList();
     
     return () => {
-      if (unsubscribe) unsubscribe();
-      window.removeEventListener('connection-change', connectionChangeHandler);
+      if (unsubscribe) {
+        console.log('Unsubscribing from ConnectionsList component');
+        unsubscribe();
+      }
     };
   }, [user?.id, subscribeToConnectionChanges]);
 
-  if (isFirstLoad || (isLoading && connections.length === 0)) {
+  if (isFirstLoad) {
     return <div className="text-center py-4">Loading connections...</div>;
+  }
+
+  if (isLoading && connections.length === 0) {
+    return <div className="text-center py-4">Loading connections...</div>;
+  }
+
+  if (!connectionSubscribed) {
+    return <div className="text-center py-4">Setting up real-time updates...</div>;
   }
 
   if (connections.length === 0) {

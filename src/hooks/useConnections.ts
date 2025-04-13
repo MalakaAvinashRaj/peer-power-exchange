@@ -35,6 +35,7 @@ export const useConnections = () => {
   const [allProfiles, setAllProfiles] = useState<Profile[]>([]);
   const [isInitialFetchDone, setIsInitialFetchDone] = useState(false);
 
+  // Fetch all users (for search functionality)
   const fetchAllUsers = useCallback(async () => {
     try {
       setIsSearching(true);
@@ -61,6 +62,7 @@ export const useConnections = () => {
     }
   }, [isInitialFetchDone, fetchAllUsers]);
 
+  // Search users from the cached profiles
   const searchUsers = useCallback((query: string) => {
     if (!query.trim() || !isInitialFetchDone) {
       setSearchResults({
@@ -75,10 +77,11 @@ export const useConnections = () => {
       
       const normalizedQuery = query.toLowerCase().trim();
       
-      // Use the cached profiles to filter locally
-      supabase.auth.getUser().then(({ data: { user } }) => {
-        const userId = user?.id;
+      // Get current user ID
+      supabase.auth.getUser().then(({ data }) => {
+        const userId = data.user?.id;
         
+        // Filter matches from the cached profiles
         const usernameMatches = allProfiles.filter(profile => 
           profile.id !== userId && 
           profile.username?.toLowerCase().includes(normalizedQuery)
@@ -104,13 +107,20 @@ export const useConnections = () => {
     }
   }, [allProfiles, isInitialFetchDone]);
 
+  // Send a connection request
   const sendConnectionRequest = async (receiverId: string) => {
     try {
-      const { data: { user } } = await supabase.auth.getUser();
+      const { data } = await supabase.auth.getUser();
+      const user = data.user;
+      
+      if (!user?.id) {
+        toast.error('You must be logged in to send connection requests');
+        return false;
+      }
       
       const response = await supabase
         .rpc('create_connection', { 
-          sender_id_param: user?.id,
+          sender_id_param: user.id,
           receiver_id_param: receiverId 
         });
 
@@ -134,13 +144,19 @@ export const useConnections = () => {
     }
   };
 
+  // Get connection status between current user and another user
   const getConnectionStatus = async (otherUserId: string): Promise<ConnectionStatus> => {
     try {
-      const { data: { user } } = await supabase.auth.getUser();
+      const { data } = await supabase.auth.getUser();
+      const user = data.user;
+      
+      if (!user?.id) {
+        return 'none';
+      }
       
       const response = await supabase
         .rpc('get_connection_status', { 
-          user_id_param: user?.id,
+          user_id_param: user.id,
           other_user_id_param: otherUserId 
         });
 
@@ -152,10 +168,12 @@ export const useConnections = () => {
     }
   };
 
-  const getPendingConnections = async () => {
+  // Get pending connection requests
+  const getPendingConnections = useCallback(async () => {
     try {
       setIsLoadingPendingConnections(true);
-      const { data: { user } } = await supabase.auth.getUser();
+      const { data } = await supabase.auth.getUser();
+      const user = data.user;
       
       if (!user?.id) {
         setPendingConnections([]);
@@ -168,6 +186,8 @@ export const useConnections = () => {
         });
 
       if (response.error) throw response.error;
+      
+      console.log('Pending connections:', response.data);
       setPendingConnections(response.data || []);
     } catch (error) {
       console.error('Error getting pending connections:', error);
@@ -175,8 +195,9 @@ export const useConnections = () => {
     } finally {
       setIsLoadingPendingConnections(false);
     }
-  };
+  }, []);
 
+  // Respond to a connection request (accept or decline)
   const respondToConnectionRequest = async (connectionId: string, status: 'accepted' | 'declined') => {
     try {
       const response = await supabase
@@ -207,8 +228,9 @@ export const useConnections = () => {
     
     console.log('Subscribing to connection changes for user:', userId);
     
+    // Set up a channel to listen for real-time connection changes
     const channel = supabase
-      .channel('connection-changes')
+      .channel(`connection-changes-${userId}`)
       .on('postgres_changes', {
         event: '*',
         schema: 'public',
@@ -216,7 +238,6 @@ export const useConnections = () => {
         filter: `sender_id=eq.${userId}`,
       }, () => {
         console.log('Connection change detected (as sender)');
-        getPendingConnections();
         // Emit the connection change event to update UI
         window.dispatchEvent(connectionChangeEvent);
       })
@@ -227,7 +248,6 @@ export const useConnections = () => {
         filter: `receiver_id=eq.${userId}`,
       }, () => {
         console.log('Connection change detected (as receiver)');
-        getPendingConnections();
         // Emit the connection change event to update UI
         window.dispatchEvent(connectionChangeEvent);
       })

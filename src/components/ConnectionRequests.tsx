@@ -13,6 +13,7 @@ import { toast } from 'sonner';
 const ConnectionRequests = () => {
   const { user } = useAuth();
   const [isFirstLoad, setIsFirstLoad] = useState(true);
+  const [connectionSubscribed, setConnectionSubscribed] = useState(false);
   
   const { 
     pendingConnections, 
@@ -23,29 +24,48 @@ const ConnectionRequests = () => {
   } = useConnections();
 
   useEffect(() => {
-    // Initial fetch of pending connections
-    const loadPendingConnections = async () => {
-      if (user?.id) {
-        try {
-          await getPendingConnections();
-          setIsFirstLoad(false);
-        } catch (error) {
-          console.error('Error loading pending connections:', error);
-          toast.error('Failed to load connection requests');
-          setIsFirstLoad(false);
-        }
+    let unsubscribe: (() => void) | undefined;
+    
+    const initializeConnectionRequests = async () => {
+      if (!user?.id) return;
+      
+      try {
+        // Initial fetch of pending connections
+        await getPendingConnections();
+        
+        // Set up subscription for real-time updates
+        unsubscribe = subscribeToConnectionChanges(user.id);
+        setConnectionSubscribed(true);
+        
+        // Listen for connection change events to refresh the list
+        const handleConnectionChange = () => {
+          console.log('Connection state changed, refreshing pending connections');
+          getPendingConnections();
+        };
+        
+        window.addEventListener('connection-change', handleConnectionChange);
+        
+        setIsFirstLoad(false);
+        
+        return () => {
+          window.removeEventListener('connection-change', handleConnectionChange);
+        };
+      } catch (error) {
+        console.error('Error initializing connection requests:', error);
+        toast.error('Failed to load connection requests');
+        setIsFirstLoad(false);
       }
     };
     
-    loadPendingConnections();
-    
-    // Subscribe to real-time updates
-    const unsubscribe = user?.id ? subscribeToConnectionChanges(user.id) : undefined;
+    initializeConnectionRequests();
     
     return () => {
-      if (unsubscribe) unsubscribe();
+      if (unsubscribe) {
+        console.log('Unsubscribing from ConnectionRequests component');
+        unsubscribe();
+      }
     };
-  }, [getPendingConnections, subscribeToConnectionChanges, user?.id]);
+  }, [user?.id, getPendingConnections, subscribeToConnectionChanges]);
 
   const handleAccept = async (connectionId: string) => {
     await respondToConnectionRequest(connectionId, 'accepted');
@@ -55,8 +75,16 @@ const ConnectionRequests = () => {
     await respondToConnectionRequest(connectionId, 'declined');
   };
 
-  if (isFirstLoad || (isLoadingPendingConnections && pendingConnections.length === 0)) {
+  if (isFirstLoad) {
     return <div className="text-center py-4">Loading connection requests...</div>;
+  }
+
+  if (isLoadingPendingConnections && pendingConnections.length === 0) {
+    return <div className="text-center py-4">Loading connection requests...</div>;
+  }
+
+  if (!connectionSubscribed) {
+    return <div className="text-center py-4">Setting up real-time updates...</div>;
   }
 
   if (pendingConnections.length === 0) {
