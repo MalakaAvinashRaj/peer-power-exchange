@@ -119,20 +119,6 @@ export const useConnections = () => {
         return false;
       }
       
-      // First, if there's a declined connection, delete it
-      const { error: deleteError } = await supabase
-        .from('connections')
-        .delete()
-        .match({
-          sender_id: user.id,
-          receiver_id: receiverId,
-          status: 'declined'
-        });
-      
-      if (deleteError) {
-        console.error('Error deleting declined connection:', deleteError);
-      }
-      
       // Now create a new connection request
       const response = await supabase
         .rpc('create_connection', { 
@@ -178,7 +164,7 @@ export const useConnections = () => {
 
       if (response.error) throw response.error;
       
-      // If the status is 'declined', treat it as 'none'
+      // For declined status, return 'none' so user can re-request
       const status = response.data as string;
       if (status === 'declined') {
         return 'none';

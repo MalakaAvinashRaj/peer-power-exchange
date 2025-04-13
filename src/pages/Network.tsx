@@ -8,11 +8,13 @@ import ConnectionRequests from '@/components/ConnectionRequests';
 import ConnectionsList from '@/components/ConnectionsList';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
+import { useConnections } from '@/hooks/useConnections';
 
 const Network = () => {
   const { user } = useAuth();
   const [activeTab, setActiveTab] = useState('connections');
   const [realtimeEnabled, setRealtimeEnabled] = useState(false);
+  const { hasPendingRequests } = useConnections();
 
   useEffect(() => {
     // Enable real-time for connections table
@@ -56,7 +58,12 @@ const Network = () => {
         >
           <TabsList className="grid w-full grid-cols-2 mb-6">
             <TabsTrigger value="connections">My Connections</TabsTrigger>
-            <TabsTrigger value="requests">Connection Requests</TabsTrigger>
+            <TabsTrigger value="requests" className="relative">
+              Connection Requests
+              {hasPendingRequests && (
+                <span className="absolute top-0 right-0 h-2.5 w-2.5 rounded-full bg-green-500 ring-1 ring-white" />
+              )}
+            </TabsTrigger>
           </TabsList>
           
           <TabsContent value="connections">

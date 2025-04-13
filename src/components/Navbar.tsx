@@ -1,5 +1,5 @@
 
-import React, { useEffect } from 'react';
+import React, { useEffect, useState } from 'react';
 import { Link } from 'react-router-dom';
 import { Button } from '@/components/ui/button';
 import { 
@@ -20,12 +20,15 @@ import {
 import { useIsMobile } from '@/hooks/use-mobile';
 import { useAuth } from '@/contexts/AuthContext';
 import { useConnections } from '@/hooks/useConnections';
+import { useMessaging } from '@/hooks/useMessaging';
 import SearchDialog from './SearchDialog';
 
 const Navbar = () => {
   const isMobile = useIsMobile();
   const { user, isAuthenticated, logout } = useAuth();
   const { hasPendingRequests, getPendingConnections, subscribeToConnectionChanges } = useConnections();
+  const [hasUnreadMessages, setHasUnreadMessages] = useState(false);
+  const [hasUnreadNotifications, setHasUnreadNotifications] = useState(false);
 
   // Initialize connection tracking for the current user
   useEffect(() => {
@@ -44,6 +47,21 @@ const Navbar = () => {
       };
       
       window.addEventListener('connection-change', handleConnectionChange);
+      
+      // For demo purposes, let's simulate some unread messages and notifications
+      // This would be replaced with actual checks in a full implementation
+      const checkUnreadMessages = () => {
+        // In a real app, this would be from the database
+        setHasUnreadMessages(Math.random() > 0.5);
+      };
+      
+      const checkUnreadNotifications = () => {
+        // In a real app, this would be from the database
+        setHasUnreadNotifications(Math.random() > 0.5);
+      };
+      
+      checkUnreadMessages();
+      checkUnreadNotifications();
       
       return () => {
         window.removeEventListener('connection-change', handleConnectionChange);
@@ -90,9 +108,12 @@ const Navbar = () => {
             <>
               {!isMobile && (
                 <>
-                  <Button variant="outline" size="icon" className="text-muted-foreground" asChild>
+                  <Button variant="outline" size="icon" className="text-muted-foreground relative" asChild>
                     <Link to="/messages">
                       <MessageSquare size={18} />
+                      {hasUnreadMessages && (
+                        <span className="absolute top-0 right-0 h-2.5 w-2.5 rounded-full bg-green-500 ring-2 ring-white" />
+                      )}
                     </Link>
                   </Button>
                   <Button variant="outline" size="icon" className="text-muted-foreground relative" asChild>
@@ -108,9 +129,12 @@ const Navbar = () => {
                       <Calendar size={18} />
                     </Link>
                   </Button>
-                  <Button variant="outline" size="icon" className="text-muted-foreground" asChild>
+                  <Button variant="outline" size="icon" className="text-muted-foreground relative" asChild>
                     <Link to="/notifications">
                       <Bell size={18} />
+                      {hasUnreadNotifications && (
+                        <span className="absolute top-0 right-0 h-2.5 w-2.5 rounded-full bg-green-500 ring-2 ring-white" />
+                      )}
                     </Link>
                   </Button>
                 </>
@@ -190,7 +214,12 @@ const Navbar = () => {
                 {isAuthenticated ? (
                   <>
                     <DropdownMenuItem asChild>
-                      <Link to="/messages">Messages</Link>
+                      <Link to="/messages">
+                        Messages
+                        {hasUnreadMessages && (
+                          <span className="ml-2 h-2 w-2 rounded-full bg-green-500" />
+                        )}
+                      </Link>
                     </DropdownMenuItem>
                     <DropdownMenuItem asChild>
                       <Link to="/network">
@@ -204,7 +233,12 @@ const Navbar = () => {
                       <Link to="/sessions">Sessions</Link>
                     </DropdownMenuItem>
                     <DropdownMenuItem asChild>
-                      <Link to="/notifications">Notifications</Link>
+                      <Link to="/notifications">
+                        Notifications
+                        {hasUnreadNotifications && (
+                          <span className="ml-2 h-2 w-2 rounded-full bg-green-500" />
+                        )}
+                      </Link>
                     </DropdownMenuItem>
                     <DropdownMenuItem onClick={logout} className="text-red-500 cursor-pointer">
                       <LogOut className="mr-2 h-4 w-4" />
