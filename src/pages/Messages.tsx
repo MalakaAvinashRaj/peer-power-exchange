@@ -1,20 +1,21 @@
-
 import React, { useState, useEffect, useRef } from 'react';
 import Navbar from '@/components/Navbar';
 import Footer from '@/components/Footer';
 import { useAuth } from '@/contexts/AuthContext';
-import { Card, CardContent } from '@/components/ui/card';
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
-import { Textarea } from '@/components/ui/textarea';
-import { Search, Send, User, MessageSquare } from 'lucide-react';
-import { supabase } from '@/integrations/supabase/client';
-import { format } from 'date-fns';
-import { toast } from 'sonner';
+import { Search, Send, User, UserPlus, MessageSquare } from 'lucide-react';
 import { Link } from 'react-router-dom';
+import { toast } from 'sonner';
+import { format } from 'date-fns';
 import { useConnections } from '@/hooks/useConnections';
 import { useMessaging } from '@/hooks/useMessaging';
+import { Badge } from '@/components/ui/badge';
+import { ScrollArea } from '@/components/ui/scroll-area';
+import StartChatDialog from '@/components/StartChatDialog';
+import { supabase } from '@/integrations/supabase/client';
 
 const Messages = () => {
   const { user } = useAuth();
@@ -22,11 +23,12 @@ const Messages = () => {
   const [isLoadingConnections, setIsLoadingConnections] = useState(true);
   const [selectedUserId, setSelectedUserId] = useState<string | null>(null);
   const [newMessage, setNewMessage] = useState('');
+  const [showStartChatDialog, setShowStartChatDialog] = useState(false);
   const messagesEndRef = useRef<HTMLDivElement>(null);
   
   const { messages, isLoading, canSendMessages, sendMessage } = useMessaging(selectedUserId || undefined);
+  const { getConnectionStatus, getPendingConnections } = useConnections();
   
-  // Type for conversation
   type Conversation = {
     id: string;
     name: string;
@@ -38,27 +40,25 @@ const Messages = () => {
   
   const [conversations, setConversations] = useState<Conversation[]>([]);
   
-  // Load connections
   useEffect(() => {
     const loadConnections = async () => {
       if (!user) return;
       
       try {
         setIsLoadingConnections(true);
-        const { data, error } = await supabase
-          .from('connections')
-          .select(`
-            id,
-            sender_id,
-            receiver_id,
-            sender:profiles!connections_sender_id_fkey(id, name, avatar_url),
-            receiver:profiles!connections_receiver_id_fkey(id, name, avatar_url)
-          `)
-          .or(`sender_id.eq.${user.id},receiver_id.eq.${user.id}`)
-          .eq('status', 'accepted');
+        
+        const { data, error } = await supabase.rpc('get_connections', { 
+          user_id_param: user.id 
+        });
           
         if (error) throw error;
         setConnections(data || []);
+        
+        const urlParams = new URLSearchParams(window.location.search);
+        const userIdParam = urlParams.get('user');
+        if (userIdParam) {
+          setSelectedUserId(userIdParam);
+        }
       } catch (err) {
         console.error('Error loading connections:', err);
         toast.error('Failed to load connections');
@@ -68,33 +68,45 @@ const Messages = () => {
     };
     
     loadConnections();
+    
+    const handleConnectionChange = () => {
+      loadConnections();
+    };
+    
+    window.addEventListener('connection-change', handleConnectionChange);
+    
+    return () => {
+      window.removeEventListener('connection-change', handleConnectionChange);
+    };
   }, [user]);
   
-  // Generate conversations from connections and messages
   useEffect(() => {
     if (!connections.length) return;
     
     const convs: Conversation[] = connections.map(conn => {
-      const isUserSender = conn.sender_id === user?.id;
-      const otherUser = isUserSender ? conn.receiver : conn.sender;
-      
-      // Find the latest message between these users
-      const latestMessage = messages.length ? messages[messages.length - 1] : null;
-      
       return {
-        id: otherUser.id,
-        name: otherUser.name,
-        avatar: otherUser.avatar_url,
-        lastMessage: latestMessage?.content || 'Start a conversation',
-        timestamp: latestMessage?.created_at ? format(new Date(latestMessage.created_at), 'PP') : '',
-        unread: latestMessage ? latestMessage.receiver_id === user?.id && !latestMessage.read : false
+        id: conn.user_id,
+        name: conn.name,
+        avatar: conn.avatar_url,
+        lastMessage: 'Start a conversation',
+        timestamp: '',
+        unread: false
       };
     });
     
+    if (selectedUserId && messages.length > 0) {
+      const selectedConvIndex = convs.findIndex(conv => conv.id === selectedUserId);
+      if (selectedConvIndex >= 0) {
+        const latestMessage = messages[messages.length - 1];
+        convs[selectedConvIndex].lastMessage = latestMessage.content;
+        convs[selectedConvIndex].timestamp = format(new Date(latestMessage.created_at), 'PP');
+        convs[selectedConvIndex].unread = latestMessage.receiver_id === user?.id && !latestMessage.read;
+      }
+    }
+    
     setConversations(convs);
-  }, [connections, messages, user?.id]);
+  }, [connections, messages, selectedUserId, user?.id]);
   
-  // Scroll to bottom of messages
   useEffect(() => {
     messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
   }, [messages]);
@@ -118,10 +130,15 @@ const Messages = () => {
     <div className="flex flex-col min-h-screen">
       <Navbar />
       <main className="flex-grow container py-8">
-        <h1 className="text-3xl font-bold mb-8">Messages</h1>
+        <div className="flex justify-between items-center mb-8">
+          <h1 className="text-3xl font-bold">Messages</h1>
+          <Button onClick={() => setShowStartChatDialog(true)}>
+            <UserPlus className="h-4 w-4 mr-2" />
+            New Chat
+          </Button>
+        </div>
         
         <div className="grid grid-cols-1 md:grid-cols-4 gap-6">
-          {/* Conversations sidebar */}
           <Card className="md:col-span-1 h-[600px] flex flex-col">
             <CardContent className="p-4 flex-1 flex flex-col">
               <div className="mb-4">
@@ -131,7 +148,7 @@ const Messages = () => {
                 </div>
               </div>
               
-              <div className="overflow-y-auto flex-1">
+              <ScrollArea className="flex-1">
                 {isLoadingConnections ? (
                   <div className="flex justify-center items-center h-full">
                     <p className="text-muted-foreground">Loading connections...</p>
@@ -159,27 +176,26 @@ const Messages = () => {
                         </p>
                       </div>
                       {conversation.unread && (
-                        <div className="w-2 h-2 rounded-full bg-skillsync-blue"></div>
+                        <Badge variant="default" className="h-2 w-2 rounded-full p-0" />
                       )}
                     </div>
                   ))
                 ) : (
                   <div className="flex flex-col justify-center items-center h-full">
-                    <p className="text-muted-foreground mb-2">No connections yet</p>
-                    <Button variant="outline" size="sm" asChild>
-                      <a href="/network">Find Connections</a>
+                    <MessageSquare className="h-12 w-12 text-muted-foreground mb-4" />
+                    <p className="text-muted-foreground mb-2">No conversations yet</p>
+                    <Button variant="outline" size="sm" onClick={() => setShowStartChatDialog(true)}>
+                      Start a new chat
                     </Button>
                   </div>
                 )}
-              </div>
+              </ScrollArea>
             </CardContent>
           </Card>
           
-          {/* Conversation */}
           <Card className="md:col-span-3 h-[600px] flex flex-col">
             {selectedUserId ? (
               <CardContent className="p-4 flex-1 flex flex-col">
-                {/* Conversation header */}
                 <div className="pb-4 border-b flex items-center gap-2">
                   <Avatar>
                     <AvatarImage src={conversations.find(c => c.id === selectedUserId)?.avatar || ''} />
@@ -193,43 +209,43 @@ const Messages = () => {
                   </div>
                 </div>
                 
-                {/* Messages */}
-                {isLoading ? (
-                  <div className="flex-1 flex justify-center items-center">
-                    <p className="text-muted-foreground">Loading messages...</p>
-                  </div>
-                ) : (
-                  <div className="flex-1 overflow-y-auto py-4 space-y-4">
-                    {messages.length > 0 ? (
-                      messages.map(message => (
-                        <div 
-                          key={message.id} 
-                          className={`flex ${message.sender_id === user?.id ? 'justify-end' : 'justify-start'}`}
-                        >
+                <ScrollArea className="flex-1 py-4">
+                  {isLoading ? (
+                    <div className="flex justify-center items-center h-full">
+                      <p className="text-muted-foreground">Loading messages...</p>
+                    </div>
+                  ) : (
+                    <div className="space-y-4">
+                      {messages.length > 0 ? (
+                        messages.map(message => (
                           <div 
-                            className={`max-w-[80%] p-3 rounded-lg ${
-                              message.sender_id === user?.id 
-                                ? 'bg-skillsync-blue text-white rounded-tr-none' 
-                                : 'bg-muted rounded-tl-none'
-                            }`}
+                            key={message.id} 
+                            className={`flex ${message.sender_id === user?.id ? 'justify-end' : 'justify-start'}`}
                           >
-                            <p>{message.content}</p>
-                            <p className={`text-xs mt-1 ${message.sender_id === user?.id ? 'text-white/80' : 'text-muted-foreground'}`}>
-                              {format(new Date(message.created_at), 'p')}
-                            </p>
+                            <div 
+                              className={`max-w-[80%] p-3 rounded-lg ${
+                                message.sender_id === user?.id 
+                                  ? 'bg-skillsync-blue text-white rounded-tr-none' 
+                                  : 'bg-muted rounded-tl-none'
+                              }`}
+                            >
+                              <p>{message.content}</p>
+                              <p className={`text-xs mt-1 ${message.sender_id === user?.id ? 'text-white/80' : 'text-muted-foreground'}`}>
+                                {format(new Date(message.created_at), 'p')}
+                              </p>
+                            </div>
                           </div>
+                        ))
+                      ) : (
+                        <div className="flex justify-center items-center h-full">
+                          <p className="text-muted-foreground">Start a conversation</p>
                         </div>
-                      ))
-                    ) : (
-                      <div className="flex justify-center items-center h-full">
-                        <p className="text-muted-foreground">Start a conversation</p>
-                      </div>
-                    )}
-                    <div ref={messagesEndRef} />
-                  </div>
-                )}
+                      )}
+                      <div ref={messagesEndRef} />
+                    </div>
+                  )}
+                </ScrollArea>
                 
-                {/* Message input */}
                 <div className="pt-4 border-t mt-auto">
                   <div className="flex gap-2">
                     <Input 
@@ -251,14 +267,31 @@ const Messages = () => {
                 </div>
               </CardContent>
             ) : (
-              <div className="flex justify-center items-center h-full">
-                <p className="text-muted-foreground">Select a conversation to start messaging</p>
+              <div className="flex flex-col justify-center items-center h-full">
+                <MessageSquare className="h-16 w-16 text-muted-foreground mb-4" />
+                <h3 className="text-xl font-medium mb-2">Your Messages</h3>
+                <p className="text-muted-foreground mb-4 text-center max-w-sm">
+                  Select a conversation from the sidebar or start a new chat with one of your connections.
+                </p>
+                <Button onClick={() => setShowStartChatDialog(true)}>
+                  <UserPlus className="h-4 w-4 mr-2" />
+                  Start a new chat
+                </Button>
               </div>
             )}
           </Card>
         </div>
       </main>
       <Footer />
+      {showStartChatDialog && (
+        <StartChatDialog 
+          onClose={() => setShowStartChatDialog(false)}
+          onSelectUser={(userId) => {
+            setSelectedUserId(userId);
+            setShowStartChatDialog(false);
+          }}
+        />
+      )}
     </div>
   );
 };
