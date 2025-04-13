@@ -10,7 +10,7 @@ export const AuthContext = createContext<AuthContextType | undefined>(undefined)
 
 export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
   const [user, setUser] = useState<User | null>(null);
-  const [isLoading, setIsLoading] = useState(true);
+  const [isLoading, setIsLoading] = useState(false);
   const [isInitialized, setIsInitialized] = useState(false);
   
   const { signIn, signUp, signOut } = useAuthOperations();
@@ -42,15 +42,6 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
       }
     };
     
-    // Add a timeout to prevent infinite loading
-    const timeoutId = setTimeout(() => {
-      if (isLoading) {
-        console.log('Auth loading timeout reached, forcing initialization');
-        setIsLoading(false);
-        setIsInitialized(true);
-      }
-    }, 5000); // 5 second timeout
-    
     initializeAuth();
     
     // Set up auth state change listener
@@ -72,7 +63,6 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
     
     return () => {
       subscription.unsubscribe();
-      clearTimeout(timeoutId);
     };
   }, [fetchUserProfile]);
   

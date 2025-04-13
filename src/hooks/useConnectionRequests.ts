@@ -5,7 +5,6 @@ import { toast } from 'sonner';
 import { PendingConnection } from '@/types/connections';
 
 export const useConnectionRequests = () => {
-  // Initialize state values properly
   const [pendingConnections, setPendingConnections] = useState<PendingConnection[]>([]);
   const [isLoadingPendingConnections, setIsLoadingPendingConnections] = useState(false);
   const [hasPendingRequests, setHasPendingRequests] = useState(false);

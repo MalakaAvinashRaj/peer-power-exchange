@@ -8,7 +8,7 @@ import { ConnectionStatus, PendingConnection, Profile, SearchResults } from '@/t
 export type { ConnectionStatus, PendingConnection, Profile, SearchResults };
 
 export const useConnections = () => {
-  // Use these hooks directly inside the function body, not in conditionals
+  // Initialize the hooks
   const searchHook = useConnectionSearch();
   const requestsHook = useConnectionRequests();
   const actionsHook = useConnectionActions();

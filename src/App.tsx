@@ -1,11 +1,12 @@
-import React, { useEffect, useState } from 'react';
+
+import React, { useEffect } from 'react';
 import {
   createBrowserRouter,
   RouterProvider,
   useNavigate,
 } from 'react-router-dom';
 import { useAuth } from '@/contexts/AuthContext';
-import Login from './pages/Login';
+import Login from './pages/Auth/Login';
 import Register from './pages/Register';
 import Home from './pages/Home';
 import Profile from '@/pages/Profile';
@@ -20,7 +21,6 @@ import Sessions from '@/pages/Sessions';
 import Notifications from '@/pages/Notifications';
 import { Toaster } from 'sonner';
 import Messages from './pages/Messages';
-import { Skeleton } from './components/ui/skeleton';
 
 const ProtectedRoute = ({ children }: { children: React.ReactNode }) => {
   const { isAuthenticated, isLoading } = useAuth();
@@ -33,52 +33,13 @@ const ProtectedRoute = ({ children }: { children: React.ReactNode }) => {
   }, [isAuthenticated, isLoading, navigate]);
 
   if (isLoading) {
-    return <LoadingState />;
+    return <div className="p-4">Loading...</div>;
   }
 
   return isAuthenticated ? <>{children}</> : null;
 };
 
-const LoadingState = () => (
-  <div className="h-screen w-screen flex items-center justify-center bg-background">
-    <div className="w-full max-w-md space-y-4 p-4">
-      <div className="space-y-2">
-        <Skeleton className="h-8 w-[250px]" />
-        <Skeleton className="h-4 w-[200px]" />
-      </div>
-      <div className="space-y-2">
-        <Skeleton className="h-20 w-full" />
-        <Skeleton className="h-20 w-full" />
-      </div>
-      <Skeleton className="h-10 w-[150px]" />
-      <div className="text-sm text-muted-foreground text-center">
-        Loading your session...
-      </div>
-    </div>
-  </div>
-);
-
 function App() {
-  const { isLoading } = useAuth();
-  const [hydrated, setHydrated] = useState(false);
-
-  useEffect(() => {
-    const timeoutId = setTimeout(() => {
-      setHydrated(true);
-    }, 2000);
-
-    if (!isLoading) {
-      setHydrated(true);
-      clearTimeout(timeoutId);
-    }
-
-    return () => clearTimeout(timeoutId);
-  }, [isLoading]);
-
-  if (!hydrated) {
-    return <LoadingState />;
-  }
-
   return (
     <div>
       <RouterProvider
