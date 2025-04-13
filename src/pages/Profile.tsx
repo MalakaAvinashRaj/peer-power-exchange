@@ -1,5 +1,6 @@
 
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
+import { useNavigate } from 'react-router-dom';
 import Navbar from '@/components/Navbar';
 import Footer from '@/components/Footer';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
@@ -15,9 +16,26 @@ import { EditProfileDialog } from '@/components/EditProfileDialog';
 import { toast } from 'sonner';
 
 const Profile = () => {
-  const { user } = useAuth();
-  const { teachingSkills, learningSkills, isLoading } = useUserSkills(user?.id);
+  const navigate = useNavigate();
+  const { user, isAuthenticated, isLoading } = useAuth();
+  const { teachingSkills, learningSkills, isLoading: skillsLoading } = useUserSkills(user?.id);
   const [isEditDialogOpen, setIsEditDialogOpen] = useState(false);
+
+  // Redirect to login page if not authenticated
+  useEffect(() => {
+    if (!isLoading && !isAuthenticated) {
+      navigate('/login');
+    }
+  }, [isLoading, isAuthenticated, navigate]);
+
+  // If still loading or not authenticated, don't render the profile content
+  if (isLoading) {
+    return <div className="flex justify-center items-center min-h-screen">Loading...</div>;
+  }
+
+  if (!isAuthenticated) {
+    return null; // Don't render anything as we're redirecting
+  }
 
   const handleShareProfile = () => {
     if (navigator.share) {
