@@ -1,12 +1,11 @@
-
-import React, { useEffect } from 'react';
+import React, { useEffect, useState } from 'react';
 import {
   createBrowserRouter,
   RouterProvider,
   useNavigate,
 } from 'react-router-dom';
 import { useAuth } from '@/contexts/AuthContext';
-import Login from './pages/Auth/Login';
+import Login from './pages/Login';
 import Register from './pages/Register';
 import Home from './pages/Home';
 import Profile from '@/pages/Profile';
@@ -33,13 +32,30 @@ const ProtectedRoute = ({ children }: { children: React.ReactNode }) => {
   }, [isAuthenticated, isLoading, navigate]);
 
   if (isLoading) {
-    return <div className="p-4">Loading...</div>;
+    return <div>Loading...</div>;
   }
 
   return isAuthenticated ? <>{children}</> : null;
 };
 
 function App() {
+  const { isLoading } = useAuth();
+  const [hydrated, setHydrated] = useState(false);
+
+  useEffect(() => {
+    if (!isLoading) {
+      setHydrated(true);
+    }
+  }, [isLoading]);
+
+  if (!hydrated) {
+    return (
+      <div className="h-screen w-screen flex items-center justify-center">
+        <div className="animate-pulse text-lg">Loading your session...</div>
+      </div>
+    );
+  }
+
   return (
     <div>
       <RouterProvider
