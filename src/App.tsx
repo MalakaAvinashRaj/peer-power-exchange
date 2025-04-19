@@ -1,9 +1,11 @@
 
-import React, { useEffect } from 'react';
+import React from 'react';
 import {
   createBrowserRouter,
   RouterProvider,
   useNavigate,
+  Outlet,
+  Navigate,
 } from 'react-router-dom';
 import { useAuth } from '@/contexts/AuthContext';
 import Login from './pages/Auth/Login';
@@ -21,16 +23,23 @@ import Sessions from '@/pages/Sessions';
 import Notifications from '@/pages/Notifications';
 import { Toaster } from 'sonner';
 import Messages from './pages/Messages';
+import UserSkillsSelection from './pages/UserSkillsSelection';
 
 const ProtectedRoute = ({ children }: { children: React.ReactNode }) => {
   const { isAuthenticated, isLoading } = useAuth();
   const navigate = useNavigate();
 
-  useEffect(() => {
+  React.useEffect(() => {
     if (!isAuthenticated && !isLoading) {
       navigate('/login');
     }
   }, [isAuthenticated, isLoading, navigate]);
+
+  if (isLoading) {
+    return <div className="flex h-screen items-center justify-center">
+      <div className="animate-spin h-8 w-8 border-4 border-primary border-t-transparent rounded-full"></div>
+    </div>;
+  }
 
   return isAuthenticated ? <>{children}</> : null;
 };
@@ -39,7 +48,11 @@ function App() {
   const { isLoading } = useAuth();
 
   if (isLoading) {
-    return <div className="flex h-screen items-center justify-center">Loading...</div>;
+    return (
+      <div className="flex h-screen items-center justify-center">
+        <div className="animate-spin h-8 w-8 border-4 border-primary border-t-transparent rounded-full"></div>
+      </div>
+    );
   }
 
   return (
@@ -57,6 +70,14 @@ function App() {
           {
             path: '/register',
             element: <Register />,
+          },
+          {
+            path: '/user-skills',
+            element: (
+              <ProtectedRoute>
+                <UserSkillsSelection />
+              </ProtectedRoute>
+            ),
           },
           {
             path: '/profile/:id',

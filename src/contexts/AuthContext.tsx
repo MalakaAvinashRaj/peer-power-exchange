@@ -43,7 +43,9 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
     // First set up the auth state listener
     const { data: { subscription } } = supabase.auth.onAuthStateChange((_event, session) => {
       setSession(session);
-      if (!session) {
+      if (session?.user) {
+        fetchUserProfile(session.user.id);
+      } else {
         setUser(null);
         setIsLoading(false);
       }
@@ -51,12 +53,17 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
 
     // Then check for existing session
     const getSession = async () => {
-      const { data: { session } } = await supabase.auth.getSession();
-      setSession(session);
-      
-      if (session?.user) {
-        fetchUserProfile(session.user.id);
-      } else {
+      try {
+        const { data: { session } } = await supabase.auth.getSession();
+        setSession(session);
+        
+        if (session?.user) {
+          fetchUserProfile(session.user.id);
+        } else {
+          setIsLoading(false);
+        }
+      } catch (error) {
+        console.error('Error getting session:', error);
         setIsLoading(false);
       }
     };
@@ -176,7 +183,7 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
               id: response.data.user.id,
               email: response.data.user.email,
               name: userData.name,
-              username: userData.username, // Make sure username is saved
+              username: userData.username,
               updated_at: new Date().toISOString(),
             },
           ]);
@@ -200,13 +207,14 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
     try {
       await supabase.auth.signOut();
       setUser(null);
+      setSession(null);
     } finally {
       setIsLoading(false);
     }
   };
 
   const updateUserData = async () => {
-    if (!session?.user.id) return;
+    if (!session?.user?.id) return;
     
     setIsLoading(true);
     

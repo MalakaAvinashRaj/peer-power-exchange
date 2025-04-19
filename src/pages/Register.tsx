@@ -1,5 +1,5 @@
 
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import Navbar from '@/components/Navbar';
 import Footer from '@/components/Footer';
@@ -9,13 +9,21 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { useAuth } from '@/contexts/AuthContext';
 import { toast } from 'sonner';
+import { Loader2 } from 'lucide-react';
 
 const Register = () => {
   const navigate = useNavigate();
-  const { signUp, generateUsername } = useAuth();
+  const { signUp, generateUsername, isAuthenticated } = useAuth();
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [generatedUsername, setGeneratedUsername] = useState('');
   const [name, setName] = useState('');
+  
+  // Redirect if already logged in
+  useEffect(() => {
+    if (isAuthenticated) {
+      navigate('/dashboard');
+    }
+  }, [isAuthenticated, navigate]);
   
   // Generate username when name changes
   const handleNameChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -54,10 +62,10 @@ const Register = () => {
         if (error) {
           toast.error(error.message);
         } else {
-          toast.success('Registration successful! Please check your email to verify your account.', {
+          toast.success('Registration successful! Please add your skills.', {
             duration: 5000,
           });
-          navigate('/login');
+          navigate('/user-skills');
         }
       }
     } catch (error) {
@@ -88,6 +96,7 @@ const Register = () => {
                   onChange={handleNameChange}
                   placeholder="Your name" 
                   required 
+                  disabled={isSubmitting}
                 />
               </div>
               
@@ -108,14 +117,32 @@ const Register = () => {
               
               <div className="space-y-2">
                 <Label htmlFor="email">Email</Label>
-                <Input id="email" name="email" type="email" placeholder="name@example.com" required />
+                <Input 
+                  id="email" 
+                  name="email" 
+                  type="email" 
+                  placeholder="name@example.com" 
+                  required 
+                  disabled={isSubmitting}
+                />
               </div>
               <div className="space-y-2">
                 <Label htmlFor="password">Password</Label>
-                <Input id="password" name="password" type="password" required />
+                <Input 
+                  id="password" 
+                  name="password" 
+                  type="password" 
+                  required 
+                  disabled={isSubmitting}
+                />
               </div>
               <Button type="submit" className="w-full" disabled={isSubmitting}>
-                {isSubmitting ? 'Registering...' : 'Register'}
+                {isSubmitting ? (
+                  <>
+                    <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                    Registering...
+                  </>
+                ) : 'Register'}
               </Button>
             </form>
           </CardContent>
