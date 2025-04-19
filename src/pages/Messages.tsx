@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect } from 'react';
 import Navbar from '@/components/Navbar';
 import Footer from '@/components/Footer';
@@ -11,6 +12,9 @@ import { useIsMobile } from '@/hooks/use-mobile';
 import MessageList from '@/components/MessageList';
 import MessageView from '@/components/MessageView';
 import { Button } from '@/components/ui/button';
+import { format } from 'date-fns';
+import { supabase } from '@/integrations/supabase/client';
+import { toast } from 'sonner';
 
 const Messages = () => {
   const { user } = useAuth();

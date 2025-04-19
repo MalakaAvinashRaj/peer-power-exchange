@@ -4,7 +4,7 @@ import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
-import { Menu, Send, User } from 'lucide-react';
+import { Menu, MessageSquare, Send, User } from 'lucide-react';
 import { format } from 'date-fns';
 import type { Message } from '@/hooks/useMessaging';
 
